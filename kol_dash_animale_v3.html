@@ -337,7 +337,14 @@ function sortTable(tblId, col) {
     var cmp = (isNaN(an)||isNaN(bn)) ? av.localeCompare(bv) : an - bn;
     return dir === "asc" ? cmp : -cmp;
   });
-  rows.forEach(function(r){tbody.appendChild(r);});
+  rows.forEach(function(r,i){
+    // Renumera coluna de posição (col 0) se for ranking
+    var firstCell = r.cells[0];
+    if (firstCell && /^\d+º$/.test(firstCell.textContent.trim())) {
+      firstCell.textContent = (i+1) + 'º';
+    }
+    tbody.appendChild(r);
+  });
 }
 
 function renderAll() {
@@ -350,7 +357,7 @@ function renderAll() {
   document.getElementById("kpi-tempo").textContent = aM + "m " + aS + "s";
   document.getElementById("m-tempo").textContent = aM + "m " + aS + "s";
   document.getElementById("m-total").textContent = n;
-  var adrs = data.map(function(r){return parseFloat(r.aderencia_playbook);}).filter(function(x){return !isNaN(x);});
+  var adrs = data.map(function(r){return parseFloat((r.aderencia_playbook||'').toString().replace('%',''));}).filter(function(x){return !isNaN(x);});
   document.getElementById("kpi-ader").textContent = Math.round(avg(adrs)) + "%";
   var vF = data.map(function(r){return parseInt(r.falas_vendedor)||0;}),
       cF = data.map(function(r){return parseInt(r.falas_cliente)||0;});
@@ -397,15 +404,55 @@ function renderAll() {
     return "<tr><td>"+c.label+"</td><td class=\"num\" style=\"color:var(--cyan);font-weight:600\">"+c.pct2+"%</td></tr>";
   }).join("");
 
-  var etapas = [["Abordagem",function(d){return d.filter(function(r){return r.apresentacao_vendedor!=="";}).length;}],["Sondagem",function(d){return d.filter(function(r){return r.solicitou_nome_cliente!=="";}).length;}],["Demonstração",function(d){return d.filter(function(r){return r.demonstrou_produto!=="";}).length;}],["Objeções",function(d){return d.filter(function(r){return r.objecoes!=="";}).length;}],["Fechamento",function(d){return d.filter(function(r){return r.convite_retornar!=="";}).length;}],["Conversão",function(d){return d.filter(function(r){return r.conversao==="sim";}).length;}]];
+  var etapas = [
+    ["Abordagem",   function(d){return d.filter(function(r){return r.apresentacao_vendedor==="sim";}).length;}],
+    ["Sondagem",    function(d){return d.filter(function(r){return r.sondagem==="sim";}).length;}],
+    ["Demonstração",function(d){return d.filter(function(r){return r.demonstrou_produto==="sim";}).length;}],
+    ["Objeções",    function(d){return d.filter(function(r){return r.objecoes==="sim";}).length;}],
+    ["Fechamento",  function(d){return d.filter(function(r){return r.encerramento_cordial==="sim";}).length;}],
+    ["Conversão",   function(d){return d.filter(function(r){return r.conversao==="sim";}).length;}]
+  ];
   document.getElementById("funil-list").innerHTML = etapas.map(function(e){
     var p = pct(e[1](data), n);
     var col = p>=80?"var(--blue)":p>=50?"var(--warn)":"var(--bad)";
     return "<div class=\"funil-row\"><span class=\"funil-label\">"+e[0]+"</span><div class=\"funil-track\"><div class=\"funil-fill\" style=\"width:"+p+"%;background:"+col+"\"><span class=\"funil-pct\">"+p+"%</span></div></div></div>";
   }).join("");
 
-  var blocos = [{icon:"👋",name:"Abordagem",p:pct(data.filter(function(r){return r.apresentacao_vendedor==="sim";}).length,n)},{icon:"🔍",name:"Diagnóstico",p:pct(data.filter(function(r){return r.solicitou_nome_cliente==="sim";}).length,n)},{icon:"🔄",name:"Condução",p:pct(data.filter(function(r){return r.demonstrou_produto==="sim";}).length,n)},{icon:"⭐",name:"Experiência",p:pct(data.filter(function(r){return r.oferta_cafe_agua==="sim";}).length,n)},{icon:"🤝",name:"Fechamento",p:pct(data.filter(function(r){return r.conversao==="sim";}).length,n)}];
+  // Calcula aderência de um bloco: campos vazios excluídos do denominador por conversa
+  // Se bloco inteiro vazio em todas as conversas → retorna null
+  function blocoAder(data, campos) {
+    var scores = data.map(function(r) {
+      var sim = 0, tot = 0;
+      campos.forEach(function(c) {
+        var v = (r[c] || '').toString().trim();
+        if (v === '') return; // vazio = não aplicável, exclui
+        tot++;
+        if (c === '_sempre1') { sim++; return; }
+        if (c === 'cordialidade' || c === 'engajamento') {
+          if (v === 'alto' || v === 'médio') sim++;
+        } else if (c === 'qtd_perguntas_exploratorias') {
+          if (parseFloat(v) >= 1) sim++;
+        } else {
+          if (v === 'sim') sim++;
+        }
+      });
+      return tot === 0 ? null : sim / tot;
+    }).filter(function(x) { return x !== null; });
+    if (scores.length === 0) return null;
+    return Math.round(scores.reduce(function(a,b){return a+b;},0) / scores.length * 100);
+  }
+
+  var blocos = [
+    {icon:'👋', name:'Abordagem',  p: blocoAder(data, ['_sempre1','apresentacao_vendedor','oferta_cafe_agua','solicitou_nome_cliente','tipo_abordagem'])},
+    {icon:'🔍', name:'Diagnóstico',p: blocoAder(data, ['sondagem','qtd_perguntas_exploratorias'])},
+    {icon:'🔄', name:'Condução',   p: blocoAder(data, ['demonstrou_produto','alternativas_objecao','upsell','cross_sell'])},
+    {icon:'⭐', name:'Experiência',p: blocoAder(data, ['cordialidade','engajamento','comportamento'])},
+    {icon:'🤝', name:'Fechamento', p: blocoAder(data, ['encerramento_cordial','convite_retornar','plano_fidelizacao'])}
+  ].map(function(b) { return {icon:b.icon, name:b.name, p: b.p === null ? null : b.p}; });
   document.getElementById("blocos-arc").innerHTML = blocos.map(function(b){
+    if (b.p === null) {
+      return "<div class=\"bloco-item\"><div class=\"bloco-circle\" style=\"background:rgba(74,85,104,.15)\">"+b.icon+"</div><div class=\"bloco-name\">"+b.name+"</div><div class=\"bloco-pct\" style=\"color:var(--text-dim)\">—</div></div>";
+    }
     var cls = b.p>=70?"c-good":b.p>=40?"c-warn":"c-bad";
     var bg = b.p>=70?"rgba(74,222,128,.15)":b.p>=40?"rgba(251,146,60,.15)":"rgba(248,113,113,.15)";
     return "<div class=\"bloco-item\"><div class=\"bloco-circle\" style=\"background:"+bg+"\">"+b.icon+"</div><div class=\"bloco-name\">"+b.name+"</div><div class=\"bloco-pct "+cls+"\">"+b.p+"%</div></div>";
