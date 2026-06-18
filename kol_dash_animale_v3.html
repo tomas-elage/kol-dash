@@ -431,10 +431,11 @@ function renderAll() {
     var scores = data.map(function(r) {
       var sim = 0, tot = 0;
       campos.forEach(function(c) {
+        // _sempre1: abordagem é sempre verdadeira (só capturamos conversas com abordagem)
+        if (c === '_sempre1') { sim++; tot++; return; }
         var v = (r[c] || '').toString().trim();
         if (v === '') return; // vazio = não aplicável, exclui
         tot++;
-        if (c === '_sempre1') { sim++; return; }
         if (c === 'tipo_abordagem') {
           if (v === 'proativa') sim++;
         } else if (c === 'cordialidade' || c === 'engajamento') {
