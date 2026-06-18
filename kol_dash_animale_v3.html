@@ -69,6 +69,13 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .dest-icon{font-size:14px;flex-shrink:0;margin-top:1px}.dest-title{font-size:12px;font-weight:600;margin-bottom:2px}
 .dest-quote{font-size:11px;color:var(--text-muted);font-style:italic;line-height:1.4}
 .blocos-arc{display:flex;justify-content:space-around;padding:6px 0 0;gap:4px}
+.bloco-item{position:relative}
+.bloco-tooltip{display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#1e2736;border:1px solid var(--border);border-radius:8px;padding:8px 12px;min-width:180px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.5);white-space:nowrap}
+.bloco-item:hover .bloco-tooltip{display:block}
+.bloco-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#1e2736}
+.bloco-tooltip-row{display:flex;justify-content:space-between;gap:16px;font-size:11px;padding:2px 0;color:var(--text-muted)}
+.bloco-tooltip-row .lbl{color:var(--text-muted)}.bloco-tooltip-row .val{font-weight:600;color:var(--text)}
+.bloco-tooltip-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);margin-bottom:5px;border-bottom:1px solid var(--border);padding-bottom:4px}
 .bloco-item{text-align:center;flex:1}.bloco-circle{width:48px;height:48px;border-radius:50%;margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-size:18px}
 .bloco-name{font-size:10px;color:var(--text-muted);margin-bottom:1px}.bloco-pct{font-size:13px;font-weight:700}
 .c-good{color:var(--green)}.c-warn{color:var(--warn)}.c-bad{color:var(--bad)}
@@ -444,20 +451,59 @@ function renderAll() {
     return Math.round(scores.reduce(function(a,b){return a+b;},0) / scores.length * 100);
   }
 
-  var blocos = [
-    {icon:'👋', name:'Abordagem',  p: blocoAder(data, ['abordagem','apresentacao_vendedor','oferta_cafe_agua','solicitou_nome_cliente','tipo_abordagem'])},
-    {icon:'🔍', name:'Diagnóstico',p: blocoAder(data, ['sondagem','qtd_perguntas_exploratorias'])},
-    {icon:'🔄', name:'Condução',   p: blocoAder(data, ['demonstrou_produto','alternativas_objecao','upsell','cross_sell'])},
-    {icon:'⭐', name:'Experiência',p: blocoAder(data, ['cordialidade','engajamento','comportamento'])},
-    {icon:'🤝', name:'Fechamento', p: blocoAder(data, ['encerramento_cordial','convite_retornar','plano_fidelizacao'])}
-  ].map(function(b) { return {icon:b.icon, name:b.name, p: b.p === null ? null : b.p}; });
+  // Define campos + labels para cada bloco (usado no cálculo e no tooltip)
+  var blocosDef = [
+    {icon:'👋', name:'Abordagem',   campos:[
+      {f:'abordagem',           lbl:'Abordagem'},
+      {f:'apresentacao_vendedor',lbl:'Apresentação vendedor'},
+      {f:'oferta_cafe_agua',    lbl:'Oferta café/água'},
+      {f:'solicitou_nome_cliente',lbl:'Solicitou nome'},
+      {f:'tipo_abordagem',      lbl:'Tipo de abordagem'},
+    ]},
+    {icon:'🔍', name:'Diagnóstico', campos:[
+      {f:'sondagem',                    lbl:'Sondagem'},
+      {f:'qtd_perguntas_exploratorias', lbl:'Perguntas exploratórias'},
+    ]},
+    {icon:'🔄', name:'Condução',    campos:[
+      {f:'demonstrou_produto',  lbl:'Demonstrou produto'},
+      {f:'alternativas_objecao',lbl:'Alternativas à objeção'},
+      {f:'upsell',              lbl:'Upsell'},
+      {f:'cross_sell',          lbl:'Cross-sell'},
+    ]},
+    {icon:'⭐', name:'Experiência', campos:[
+      {f:'cordialidade', lbl:'Cordialidade'},
+      {f:'engajamento',  lbl:'Engajamento'},
+      {f:'comportamento',lbl:'Comportamento'},
+    ]},
+    {icon:'🤝', name:'Fechamento',  campos:[
+      {f:'encerramento_cordial',lbl:'Encerramento cordial'},
+      {f:'convite_retornar',    lbl:'Convidou a retornar'},
+      {f:'plano_fidelizacao',   lbl:'Plano fidelização'},
+    ]},
+  ];
+
+  var blocos = blocosDef.map(function(b) {
+    var fs2 = b.campos.map(function(c){return c.f;});
+    var p = blocoAder(data, fs2);
+    // Calcula % individual de cada campo (mesma lógica do bloco)
+    var breakdown = b.campos.map(function(c) {
+      var p2 = blocoAder(data, [c.f]);
+      return {lbl: c.lbl, p: p2};
+    }).filter(function(x){return x.p !== null;});
+    return {icon:b.icon, name:b.name, p:p, breakdown:breakdown};
+  });
   document.getElementById("blocos-arc").innerHTML = blocos.map(function(b){
+    var tooltipRows = b.breakdown && b.breakdown.length ? b.breakdown.map(function(x){
+      var vc = x.p>=70?"c-good":x.p>=40?"c-warn":"c-bad";
+      return "<div class=\"bloco-tooltip-row\"><span class=\"lbl\">"+x.lbl+"</span><span class=\"val "+vc+"\">"+x.p+"%</span></div>";
+    }).join("") : "";
+    var tooltip = tooltipRows ? "<div class=\"bloco-tooltip\"><div class=\"bloco-tooltip-title\">"+b.name+"</div>"+tooltipRows+"</div>" : "";
     if (b.p === null) {
-      return "<div class=\"bloco-item\"><div class=\"bloco-circle\" style=\"background:rgba(74,85,104,.15)\">"+b.icon+"</div><div class=\"bloco-name\">"+b.name+"</div><div class=\"bloco-pct\" style=\"color:var(--text-dim)\">—</div></div>";
+      return "<div class=\"bloco-item\">"+tooltip+"<div class=\"bloco-circle\" style=\"background:rgba(74,85,104,.15)\">"+b.icon+"</div><div class=\"bloco-name\">"+b.name+"</div><div class=\"bloco-pct\" style=\"color:var(--text-dim)\">—</div></div>";
     }
     var cls = b.p>=70?"c-good":b.p>=40?"c-warn":"c-bad";
     var bg = b.p>=70?"rgba(74,222,128,.15)":b.p>=40?"rgba(251,146,60,.15)":"rgba(248,113,113,.15)";
-    return "<div class=\"bloco-item\"><div class=\"bloco-circle\" style=\"background:"+bg+"\">"+b.icon+"</div><div class=\"bloco-name\">"+b.name+"</div><div class=\"bloco-pct "+cls+"\">"+b.p+"%</div></div>";
+    return "<div class=\"bloco-item\">"+tooltip+"<div class=\"bloco-circle\" style=\"background:"+bg+"\">"+b.icon+"</div><div class=\"bloco-name\">"+b.name+"</div><div class=\"bloco-pct "+cls+"\">"+b.p+"%</div></div>";
   }).join("");
 }
 
