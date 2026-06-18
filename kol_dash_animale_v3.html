@@ -408,7 +408,7 @@ function renderAll() {
     ["Abordagem",   function(d){return d.filter(function(r){return r.apresentacao_vendedor==="sim";}).length;}],
     ["Sondagem",    function(d){return d.filter(function(r){return r.sondagem==="sim";}).length;}],
     ["Demonstração",function(d){return d.filter(function(r){return r.demonstrou_produto==="sim";}).length;}],
-    ["Objeções",    function(d){return d.filter(function(r){return r.objecoes==="sim";}).length;}],
+    ["Objeções",    function(d){return d.filter(function(r){return r.objecoes&&r.objecoes.trim()!=="";}).length;}],
     ["Fechamento",  function(d){return d.filter(function(r){return r.encerramento_cordial==="sim";}).length;}],
     ["Conversão",   function(d){return d.filter(function(r){return r.conversao==="sim";}).length;}]
   ];
@@ -428,7 +428,9 @@ function renderAll() {
         if (v === '') return; // vazio = não aplicável, exclui
         tot++;
         if (c === '_sempre1') { sim++; return; }
-        if (c === 'cordialidade' || c === 'engajamento') {
+        if (c === 'tipo_abordagem') {
+          if (v !== '') sim++;
+        } else if (c === 'cordialidade' || c === 'engajamento') {
           if (v === 'alto' || v === 'médio') sim++;
         } else if (c === 'qtd_perguntas_exploratorias') {
           if (parseFloat(v) >= 1) sim++;
@@ -443,7 +445,7 @@ function renderAll() {
   }
 
   var blocos = [
-    {icon:'👋', name:'Abordagem',  p: blocoAder(data, ['_sempre1','apresentacao_vendedor','oferta_cafe_agua','solicitou_nome_cliente','tipo_abordagem'])},
+    {icon:'👋', name:'Abordagem',  p: blocoAder(data, ['abordagem','apresentacao_vendedor','oferta_cafe_agua','solicitou_nome_cliente','tipo_abordagem'])},
     {icon:'🔍', name:'Diagnóstico',p: blocoAder(data, ['sondagem','qtd_perguntas_exploratorias'])},
     {icon:'🔄', name:'Condução',   p: blocoAder(data, ['demonstrou_produto','alternativas_objecao','upsell','cross_sell'])},
     {icon:'⭐', name:'Experiência',p: blocoAder(data, ['cordialidade','engajamento','comportamento'])},
