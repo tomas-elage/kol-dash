@@ -436,7 +436,7 @@ function renderAll() {
         tot++;
         if (c === '_sempre1') { sim++; return; }
         if (c === 'tipo_abordagem') {
-          if (v !== '') sim++;
+          if (v === 'proativa') sim++;
         } else if (c === 'cordialidade' || c === 'engajamento') {
           if (v === 'alto' || v === 'médio') sim++;
         } else if (c === 'qtd_perguntas_exploratorias') {
@@ -454,11 +454,11 @@ function renderAll() {
   // Define campos + labels para cada bloco (usado no cálculo e no tooltip)
   var blocosDef = [
     {icon:'👋', name:'Abordagem',   campos:[
-      {f:'abordagem',           lbl:'Abordagem'},
+      {f:'_sempre1',             lbl:'Abordagem'},
+      {f:'tipo_abordagem',       lbl:'Tipo de abordagem'},
       {f:'apresentacao_vendedor',lbl:'Apresentação vendedor'},
-      {f:'oferta_cafe_agua',    lbl:'Oferta café/água'},
       {f:'solicitou_nome_cliente',lbl:'Solicitou nome'},
-      {f:'tipo_abordagem',      lbl:'Tipo de abordagem'},
+      {f:'oferta_cafe_agua',     lbl:'Oferta café/água'},
     ]},
     {icon:'🔍', name:'Diagnóstico', campos:[
       {f:'sondagem',                    lbl:'Sondagem'},
