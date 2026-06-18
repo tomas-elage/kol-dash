@@ -68,11 +68,11 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .dest-item{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}.dest-item:last-child{border-bottom:none}
 .dest-icon{font-size:14px;flex-shrink:0;margin-top:1px}.dest-title{font-size:12px;font-weight:600;margin-bottom:2px}
 .dest-quote{font-size:11px;color:var(--text-muted);font-style:italic;line-height:1.4}
-.blocos-arc{display:flex;justify-content:space-around;padding:6px 0 0;gap:4px}
-.bloco-item{position:relative}
-.bloco-tooltip{display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#1e2736;border:1px solid var(--border);border-radius:8px;padding:8px 12px;min-width:180px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.5);white-space:nowrap}
+.blocos-arc{display:flex;justify-content:space-around;padding:6px 0 0;gap:4px;overflow:visible}
+.bloco-item{position:relative;overflow:visible}
+.bloco-tooltip{display:none;position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#1e2736;border:1px solid var(--border);border-radius:8px;padding:8px 12px;min-width:190px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.6);white-space:nowrap}
 .bloco-item:hover .bloco-tooltip{display:block}
-.bloco-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#1e2736}
+.bloco-tooltip::before{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-bottom-color:#1e2736}
 .bloco-tooltip-row{display:flex;justify-content:space-between;gap:16px;font-size:11px;padding:2px 0;color:var(--text-muted)}
 .bloco-tooltip-row .lbl{color:var(--text-muted)}.bloco-tooltip-row .val{font-weight:600;color:var(--text)}
 .bloco-tooltip-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);margin-bottom:5px;border-bottom:1px solid var(--border);padding-bottom:4px}
@@ -135,7 +135,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   </div>
   <div class="row3">
     <div class="card"><div class="card-title">Destaques da Conversa</div><div class="card-sub">Trechos identificados automaticamente</div><div class="dest-wrap" id="dest-list"><p style="color:var(--text-dim);font-size:12px;padding:8px 0">Destaques disponíveis no dashboard KOL</p></div></div>
-    <div class="card"><div class="card-title">Aderência ao Playbook por Bloco</div><div class="card-sub">Aderência média do time em cada bloco</div><div class="blocos-arc" id="blocos-arc"></div><div style="text-align:center;margin-top:10px;font-size:10px;color:var(--text-dim)">% de aderência média em cada bloco do playbook</div></div>
+    <div class="card" style="overflow:visible"><div class="card-title">Aderência ao Playbook por Bloco</div><div class="card-sub">Aderência média do time em cada bloco</div><div class="blocos-arc" id="blocos-arc"></div><div style="text-align:center;margin-top:10px;font-size:10px;color:var(--text-dim)">% de aderência média em cada bloco do playbook</div></div>
     <div class="card"><div class="card-title">Funil do Atendimento</div><div class="card-sub">% de conversas que chegam até cada etapa</div><div class="funil-list" id="funil-list"></div></div>
   </div>
 </div>
