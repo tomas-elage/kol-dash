@@ -163,11 +163,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 <script>
 
 const GSHEET_CSV = "https://docs.google.com/spreadsheets/d/1_B39tmwDH6p4KS29qI4xxfbKzDLyIVNW2qACIzmrwtA/gviz/tq?tqx=out:csv&sheet=conversas";
-const DE_PARA = {
-  produto: {"vestido":"Vestido","calca":"Calça","calca jeam":"Calça","calca linho":"Calça","calca cinza":"Calça","calca couro":"Calça","jeam":"Calça","blusa":"Blusa / Camisa / Camiseta","blusa linha":"Blusa / Camisa / Camiseta","camiseta":"Blusa / Camisa / Camiseta","camisa":"Blusa / Camisa / Camiseta","trico":"Tricô","conjunto trico":"Tricô","trench coat":"Jaqueta / Casaco","jaqueta":"Jaqueta / Casaco","casaco":"Jaqueta / Casaco","colete":"Jaqueta / Casaco","saia lapl":"Saia","anel":"Acessórios — Joalheria","brinco":"Acessórios — Joalheria","colar ouro":"Acessórios — Joalheria","bota":"Acessórios — Calçados","lenco":"Acessórios — Outros","brinde":"Acessórios — Outros"},
-  motivo_visita: {"busca produto específico":"Compra — Produto Específico","busca calça":"Compra — Produto Específico","busca vestido tamanho específico":"Compra — Produto Específico","buscar vestido visto no site":"Compra — Produto Específico","comprar bota":"Compra — Produto Específico","compra trench coat com desconto":"Compra — Produto Específico","comprar calça":"Compra — Produto Específico","busca por trench coat de sarja":"Compra — Produto Específico","compra jeans":"Compra — Produto Específico","comprar calça linho":"Compra — Produto Específico","produto específico":"Compra — Produto Específico","blusa verde marrom":"Compra — Produto Específico","busca calça cinza alfaiataria reta":"Compra — Produto Específico","busca por trench coat visto no site":"Compra — Produto Específico","compra roupa":"Compra — Geral","comprar presente":"Compra — Geral","compra presente":"Compra — Geral","troca de peças":"Troca / Devolução","troca via link":"Troca / Devolução","troca de produtos":"Troca / Devolução","troca de peça":"Troca / Devolução","devolução produto":"Troca / Devolução","troca de produto":"Troca / Devolução","evento lançamento coleção":"Evento / Lançamento de Coleção","visita à loja":"Visita Exploratória","retirada de brinde":"Retirada de Brinde","vestido casamento":"Ocasião Especial"},
-  objecao: {"tamanho":"Tamanho / Fit","fit/tamanho":"Tamanho / Fit","cor":"Cor","cor disponível":"Cor","preço":"Preço","desconto":"Preço","modelo":"Modelo / Estilo","design":"Modelo / Estilo","estilo":"Modelo / Estilo","modelagem":"Modelo / Estilo","estoque":"Estoque / Disponibilidade","produto indisponível":"Estoque / Disponibilidade","produto":"Estoque / Disponibilidade","pagamento":"Pagamento / Parcelamento","estorno cartão":"Pagamento / Parcelamento","entrega":"Entrega / Prazo","prazo entrega":"Entrega / Prazo","salto":"Conforto / Caimento","elástico":"Conforto / Caimento","temperatura":"Conforto / Caimento","cansaço troca":"Processo de Troca","fidelidade amiga":"Processo de Troca","visita exploratória":"Comportamento do Cliente","preferência por guardar":"Comportamento do Cliente","bolso":"Outros","modelo não lápis":"Outros"}
-};
+const DE_PARA = {produto:{},motivo_visita:{},objecao:{}};
 
 function dp(val, campo) {
   var m = DE_PARA[campo] || {};
@@ -259,8 +255,8 @@ function applyFilters() {
   var d1 = filters.dateFrom, d2 = filters.dateTo;
   FILTERED = ALL_DATA.filter(function(r) {
     var s = (r.auditoria_status || "").toLowerCase();
-    if (s === "excluída") return false;
-    if (filters.conv === "aprovadas" && s !== "aprovada") return false;
+    if (s === "recusado") return false;
+    if (filters.conv === "aprovadas" && s !== "aprovado") return false;
     if (filters.lojas.length && filters.lojas.indexOf(r.loja) === -1) return false;
     if (filters.vendedores.length && filters.vendedores.indexOf(r.vendedor) === -1) return false;
     if (d1 || d2) {
@@ -356,7 +352,7 @@ function sortTable(tblId, col) {
 
 function renderAll() {
   var data = FILTERED, n = data.length;
-  var convCount = data.filter(function(r){return r.conversao === "sim";}).length;
+  var convCount = data.filter(function(r){return r["Conversa convertida em venda?"] === "Sim";}).length;
   document.getElementById("kpi-conv").textContent = n;
   document.getElementById("kpi-conv-pct").textContent = pct(convCount, n) + "%";
   var durs = data.map(function(r){return parseDuration(r.duracao);}).filter(function(x){return x>0;});
@@ -364,10 +360,10 @@ function renderAll() {
   document.getElementById("kpi-tempo").textContent = aM + "m " + aS + "s";
   document.getElementById("m-tempo").textContent = aM + "m " + aS + "s";
   document.getElementById("m-total").textContent = n;
-  var adrs = data.map(function(r){return parseFloat((r.aderencia_playbook||'').toString().replace('%',''));}).filter(function(x){return !isNaN(x);});
+  var adrs = data.map(function(r){return parseFloat((r["Aderência ao playbook (%)"]||'').toString().replace('%',''));}).filter(function(x){return !isNaN(x);});
   document.getElementById("kpi-ader").textContent = Math.round(avg(adrs)) + "%";
-  var vF = data.map(function(r){return parseInt(r.falas_vendedor)||0;}),
-      cF = data.map(function(r){return parseInt(r.falas_cliente)||0;});
+  var vF = data.map(function(r){return parseInt(r["Quantas falas o vendedor falou?"])||0;}),
+      cF = data.map(function(r){return parseInt(r["Quantas falas o cliente falou?"])||0;});
   var tV = vF.reduce(function(a,b){return a+b;},0), tC = cF.reduce(function(a,b){return a+b;},0), tT = tV+tC||1;
   var vp = Math.round(tV/tT*100), cp = 100-vp;
   document.getElementById("fala-v").style.width = vp + "%";
@@ -380,8 +376,8 @@ function renderAll() {
     if (!r.vendedor) return;
     if (!byV[r.vendedor]) byV[r.vendedor] = {conv:0,total:0,ader:[]};
     byV[r.vendedor].total++;
-    if (r.conversao === "sim") byV[r.vendedor].conv++;
-    var a = parseFloat(r.aderencia_playbook);
+    if (r["Conversa convertida em venda?"] === "Sim") byV[r.vendedor].conv++;
+    var a = parseFloat(r["Aderência ao playbook (%)"]);
     if (!isNaN(a)) byV[r.vendedor].ader.push(a);
   });
   document.getElementById("tbl-vend-body").innerHTML = Object.entries(byV).map(function(e){
@@ -395,8 +391,8 @@ function renderAll() {
     if (!r.loja) return;
     if (!byL[r.loja]) byL[r.loja] = {conv:0,total:0,ader:[]};
     byL[r.loja].total++;
-    if (r.conversao === "sim") byL[r.loja].conv++;
-    var a = parseFloat(r.aderencia_playbook);
+    if (r["Conversa convertida em venda?"] === "Sim") byL[r.loja].conv++;
+    var a = parseFloat(r["Aderência ao playbook (%)"]);
     if (!isNaN(a)) byL[r.loja].ader.push(a);
   });
   document.getElementById("tbl-lojas-body").innerHTML = Object.entries(byL).map(function(e){
@@ -405,19 +401,19 @@ function renderAll() {
     return "<tr><td style=\"color:var(--text-dim);font-size:11px\">"+(i+1)+"º</td><td>"+r.nm+"</td><td class=\"good\">"+r.cp+"%</td><td class=\"num\">"+r.ad+"%</td><td class=\"num\">"+r.t+"</td></tr>";
   }).join("");
 
-  var inds = [["oferta_cafe_agua","Ofertou café/água"],["solicitou_nome_cliente","Solicitou nome"],["apresentacao_vendedor","Vendedor se apresentou"],["demonstrou_produto","Demonstrou o produto"],["alternativas_objecao","Apresentou alternativas"],["upsell","Tentou upsell"],["cross_sell","Tentou cross-sell"],["convite_retornar","Convidou a retornar"],["plano_fidelizacao","Plano de fidelização"]];
+  var inds = [["Ofereceu café e/ou água?","Ofertou café/água"],["Perguntou o nome do cliente?","Solicitou nome"],["Vendedor se apresentou pelo nome?","Vendedor se apresentou"],["Demonstrou o produto?","Demonstrou o produto"],["Demonstrou alternativas à objeção?","Apresentou alternativas"],["Tentou upsell?","Tentou upsell"],["Tentou cross sell?","Tentou cross-sell"],["Vendedor convidou o cliente a retornar?","Convidou a retornar"],["Vendedor falou do programa de fidelização?","Plano de fidelização"]];
   var ic = inds.map(function(x){ return {label:x[1], pct2:pct(data.filter(function(r){return r[x[0]]==="sim";}).length, n)}; }).sort(function(a,b){return b.pct2-a.pct2;});
   document.getElementById("tbl-ind-body").innerHTML = ic.map(function(c){
     return "<tr><td>"+c.label+"</td><td class=\"num\" style=\"color:var(--cyan);font-weight:600\">"+c.pct2+"%</td></tr>";
   }).join("");
 
   var etapas = [
-    ["Abordagem",   function(d){return d.filter(function(r){return r.apresentacao_vendedor==="sim";}).length;}],
-    ["Sondagem",    function(d){return d.filter(function(r){return r.sondagem==="sim";}).length;}],
-    ["Demonstração",function(d){return d.filter(function(r){return r.demonstrou_produto==="sim";}).length;}],
-    ["Objeções",    function(d){return d.filter(function(r){return r.objecoes&&r.objecoes.trim()!=="";}).length;}],
-    ["Fechamento",  function(d){return d.filter(function(r){return r.encerramento_cordial==="sim";}).length;}],
-    ["Conversão",   function(d){return d.filter(function(r){return r.conversao==="sim";}).length;}]
+    ["Abordagem",   function(d){return d.filter(function(r){return r["Vendedor se apresentou pelo nome?"] === "Sim";}).length;}],
+    ["Sondagem",    function(d){return d.filter(function(r){return r["Fez sondagem para entender a necessidade?"] === "Sim";}).length;}],
+    ["Demonstração",function(d){return d.filter(function(r){return r["Demonstrou o produto?"] === "Sim";}).length;}],
+    ["Objeções",    function(d){return d.filter(function(r){return r["Qual foi a objeção?"]&&r["Qual foi a objeção?"].trim()!=="";}).length;}],
+    ["Fechamento",  function(d){return d.filter(function(r){return r["Como foi o encerramento do vendedor?"] === "Cordial";}).length;}],
+    ["Conversão",   function(d){return d.filter(function(r){return r["Conversa convertida em venda?"] === "Sim";}).length;}]
   ];
   document.getElementById("funil-list").innerHTML = etapas.map(function(e){
     var p = pct(e[1](data), n);
@@ -436,11 +432,11 @@ function renderAll() {
         var v = (r[c] || '').toString().trim();
         if (v === '') return; // vazio = não aplicável, exclui
         tot++;
-        if (c === 'tipo_abordagem') {
-          if (v === 'proativa') sim++;
-        } else if (c === 'cordialidade' || c === 'engajamento') {
-          if (v === 'alto' || v === 'médio') sim++;
-        } else if (c === 'qtd_perguntas_exploratorias') {
+        if (c === "Tipo de abordagem") {
+          if (v === "Proativa") sim++;
+        } else if (c === "Cordialidade" || c === "Nível de engajamento do vendedor") {
+          if (v === "Alta" || v === "Média" || v === "Alto" || v === "Médio") sim++;
+        } else if (c === "Quantas perguntas exploratórias feitas?") {
           if (parseFloat(v) >= 1) sim++;
         } else {
           if (v === 'sim') sim++;
@@ -456,30 +452,30 @@ function renderAll() {
   var blocosDef = [
     {icon:'👋', name:'Abordagem',   campos:[
       {f:'_sempre1',             lbl:'Abordagem'},
-      {f:'tipo_abordagem',       lbl:'Tipo de abordagem'},
-      {f:'apresentacao_vendedor',lbl:'Apresentação vendedor'},
-      {f:'solicitou_nome_cliente',lbl:'Solicitou nome'},
-      {f:'oferta_cafe_agua',     lbl:'Oferta café/água'},
+      {f:"Tipo de abordagem",       lbl:'Tipo de abordagem'},
+      {f:"Vendedor se apresentou pelo nome?",lbl:'Apresentação vendedor'},
+      {f:"Perguntou o nome do cliente?",lbl:'Solicitou nome'},
+      {f:"Ofereceu café e/ou água?",     lbl:'Oferta café/água'},
     ]},
     {icon:'🔍', name:'Diagnóstico', campos:[
-      {f:'sondagem',                    lbl:'Sondagem'},
-      {f:'qtd_perguntas_exploratorias', lbl:'Perguntas exploratórias'},
+      {f:"Fez sondagem para entender a necessidade?",                    lbl:'Sondagem'},
+      {f:"Quantas perguntas exploratórias feitas?", lbl:'Perguntas exploratórias'},
     ]},
     {icon:'🔄', name:'Condução',    campos:[
-      {f:'demonstrou_produto',  lbl:'Demonstrou produto'},
-      {f:'alternativas_objecao',lbl:'Alternativas à objeção'},
-      {f:'upsell',              lbl:'Upsell'},
-      {f:'cross_sell',          lbl:'Cross-sell'},
+      {f:"Demonstrou o produto?",  lbl:'Demonstrou produto'},
+      {f:"Demonstrou alternativas à objeção?",lbl:'Alternativas à objeção'},
+      {f:"Tentou upsell?",              lbl:'Upsell'},
+      {f:"Tentou cross sell?",          lbl:'Cross-sell'},
     ]},
     {icon:'⭐', name:'Experiência', campos:[
-      {f:'cordialidade', lbl:'Cordialidade'},
-      {f:'engajamento',  lbl:'Engajamento'},
-      {f:'comportamento',lbl:'Comportamento'},
+      {f:"Cordialidade", lbl:'Cordialidade'},
+      {f:"Nível de engajamento do vendedor",  lbl:'Engajamento'},
+      {f:"Você considera o comportamento do vendedor adequado?",lbl:'Comportamento'},
     ]},
     {icon:'🤝', name:'Fechamento',  campos:[
-      {f:'encerramento_cordial',lbl:'Encerramento cordial'},
-      {f:'convite_retornar',    lbl:'Convidou a retornar'},
-      {f:'plano_fidelizacao',   lbl:'Plano fidelização'},
+      {f:"Como foi o encerramento do vendedor?",lbl:'Encerramento cordial'},
+      {f:"Vendedor convidou o cliente a retornar?",    lbl:'Convidou a retornar'},
+      {f:"Vendedor falou do programa de fidelização?",   lbl:'Plano fidelização'},
     ]},
   ];
 
@@ -527,38 +523,38 @@ function updateDonut(cid, lid, vals, colors, labels, total) {
 function renderClienteView(data) {
   var n = data.length || 1;
   var perfis = {"Básico":0,"Roteiro":0,"Consultivo":0};
-  data.forEach(function(r){ if(r.nivel_interacao) perfis[r.nivel_interacao] = (perfis[r.nivel_interacao]||0)+1; });
+  data.forEach(function(r){ if(r["Como o vendedor se portou?"]) perfis[r["Como o vendedor se portou?"]] = (perfis[r["Como o vendedor se portou?"]]||0)+1; });
   updateDonut("chartPerfil","leg-perfil",[perfis["Consultivo"]||0,perfis["Roteiro"]||0,perfis["Básico"]||0],["#06b6d4","#3b82f6","#f59e0b"],["Consultivo","Roteiro","Básico"],n);
   var pc = {};
-  data.forEach(function(r){ var p=r.nivel_interacao; if(!p)return; if(!pc[p])pc[p]={conv:0,total:0}; pc[p].total++; if(r.conversao==="sim")pc[p].conv++; });
+  data.forEach(function(r){ var p=r["Como o vendedor se portou?"]; if(!p)return; if(!pc[p])pc[p]={conv:0,total:0}; pc[p].total++; if(r["Conversa convertida em venda?"] === "Sim")pc[p].conv++; });
   document.getElementById("perfil-converte").innerHTML = Object.entries(pc).map(function(e){
     var p2=pct(e[1].conv,e[1].total);
     return "<div class=\"hbar-row\"><span class=\"hbar-lbl\">"+e[0]+"</span><div class=\"hbar-track\"><div class=\"hbar-fill\" style=\"width:"+p2+"%\"></div></div><span class=\"hbar-val\">"+p2+"%</span></div>";
   }).join("");
-  var sc = {"Valorizado":0,"Neutro":0,"Frustrado":0,"Encantado":0};
-  data.forEach(function(r){ if(r.sentimento) sc[r.sentimento]=(sc[r.sentimento]||0)+1; });
-  var scol = {"Valorizado":"#3b82f6","Neutro":"#6b7280","Frustrado":"#ef4444","Encantado":"#22c55e"};
+  var sc = {"Encantado","Valorizado","Neutro","Frustrado":0};
+  data.forEach(function(r){ if(r["Como você acha que o cliente saiu da loja?"]) sc[r["Como você acha que o cliente saiu da loja?"]]=(sc[r["Como você acha que o cliente saiu da loja?"]]||0)+1; });
+  var scol = {"Encantado","Valorizado","Neutro","Frustrado":"#22c55e"};
   document.getElementById("sentimento-bars").innerHTML = Object.entries(sc).map(function(e){
     return "<div class=\"hbar-row\"><span class=\"hbar-lbl\">"+e[0]+"</span><div class=\"hbar-track\"><div class=\"hbar-fill\" style=\"width:"+pct(e[1],n)+"%;background:"+scol[e[0]]+"\"></div></div></div>";
   }).join("");
-  var uso = {"sim":0,"não (presente)":0,"":0};
-  data.forEach(function(r){ var k=r.para_uso_proprio||""; uso[k]=(uso[k]||0)+1; });
-  updateDonut("chartUso","leg-uso",[uso["sim"]||0,uso["não (presente)"]||0,uso[""]||0],["#22c55e","#f59e0b","#4a5568"],["Uso próprio","Presente","Não identificado"],n);
-  var espSim = data.filter(function(r){return r.produto&&r.produto.trim();}).length;
+  var uso = {"Sim":0,"Não":0,"":0};
+  data.forEach(function(r){ var k=r["Para uso próprio?"]||""; uso[k]=(uso[k]||0)+1; });
+  updateDonut("chartUso","leg-uso",[uso["Sim"]||0,uso["Não"]||0,uso[""]||0],["#22c55e","#f59e0b","#4a5568"],["Uso próprio","Não (presente)","Não identificado"],n);
+  var espSim = data.filter(function(r){return r["Produto procurado"]&&r["Produto procurado"].trim();}).length;
   updateDonut("chartEsp","leg-esp",[espSim,n-espSim],["#06b6d4","#ef4444"],["Com produto","Sem produto"],n);
   renderHBars("hbar-motivo", countBy(data,"motivo_visita","motivo_visita"), "var(--blue)");
   renderHBars("hbar-produto", countBy(data,"produto","produto"), "var(--blue)");
   document.getElementById("hbar-combo").innerHTML = "<p style=\"color:var(--text-dim);font-size:11px;padding:4px 0\">Disponível no dashboard KOL</p>";
-  updateDonut("chartItens","leg-itens",[data.filter(function(r){return r.conversao==="sim";}).length,data.filter(function(r){return r.conversao!=="sim";}).length],["#06b6d4","#4a5568"],["Converteu","Não converteu"],n);
+  updateDonut("chartItens","leg-itens",[data.filter(function(r){return r["Conversa convertida em venda?"] === "Sim";}).length,data.filter(function(r){return r["Conversa convertida em venda?"]!=="sim";}).length],["#06b6d4","#4a5568"],["Converteu","Não converteu"],n);
   var oa = {};
-  data.forEach(function(r){ if(!r.objecoes)return; var k=dp(r.objecoes,"objecao"); if(!oa[k])oa[k]={freq:0,conv:0}; oa[k].freq++; if(r.conversao==="sim")oa[k].conv++; });
+  data.forEach(function(r){ if(!r["Qual foi a objeção?"])return; var k=dp(r["Qual foi a objeção?"],"objecao"); if(!oa[k])oa[k]={freq:0,conv:0}; oa[k].freq++; if(r["Conversa convertida em venda?"] === "Sim")oa[k].conv++; });
   document.getElementById("tbl-obj-body").innerHTML = Object.entries(oa).sort(function(a,b){return b[1].freq-a[1].freq;}).map(function(e){
     var cp2=pct(e[1].conv,e[1].freq);
     var st=cp2>=50?"color:var(--green)":cp2>=25?"color:var(--warn)":"color:var(--bad)";
     return "<tr><td>"+e[0]+"</td><td style=\"text-align:right;color:var(--text-muted)\">"+e[1].freq+"</td><td style=\"text-align:right;font-weight:600;"+st+"\">"+cp2+"%</td></tr>";
   }).join("");
   renderHBars("hbar-perda", countBy(data,"motivo_perda"), "var(--bad)");
-  var concCount = data.filter(function(r){return r.mencao_concorrente==="sim";}).length;
+  var concCount = data.filter(function(r){return r["Mencionou algum concorrente?"]==="sim";}).length;
   document.getElementById("conc-sub").textContent = pct(concCount,n)+"% mencionaram concorrentes";
   renderHBars("hbar-conc", countBy(data,"concorrentes"), "var(--orange)");
 }
