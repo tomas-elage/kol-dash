@@ -199,22 +199,21 @@ function parseCSV(text) {
 
 function normVal(k, v) {
   if (!v) return v;
-  // Campos sim/não
-  var simNaoFields = ["Perguntou o nome do cliente?","Vendedor se apresentou pelo nome?","Fez sondagem para entender a necessidade?","Para uso próprio?","Demonstrou o produto?","Ofereceu café e/ou água?","Demonstrou alternativas à objeção?","Tentou upsell?","Tentou cross sell?","Mencionou algum concorrente?","Conversa convertida em venda?","Vendedor convidou o cliente a retornar?","Vendedor falou do programa de fidelização?","Você considera o comportamento do vendedor adequado?"];
-  if (simNaoFields.indexOf(k) >= 0) {
-    var lv = v.toLowerCase().trim();
-    if (lv === "sim") return "Sim";
-    if (lv === "não" || lv === "nao") return "Não";
-    if (lv === "não aplicável" || lv === "nao aplicavel") return "Não aplicável";
-    return v;
+  var lv = v.toLowerCase().trim();
+  var lk = (k||'').toLowerCase();
+  // sim/não para todos os campos que terminam com "?"
+  if (lk.charAt(lk.length-1) === '?') {
+    if (lv === 'sim') return 'Sim';
+    if (lv === 'nao' || lv === 'n\u00e3o') return 'N\u00e3o';
+    if (lv === 'nao aplicavel' || lv === 'n\u00e3o aplic\u00e1vel' || lv === 'nao aplic\u00e1vel') return 'N\u00e3o aplic\u00e1vel';
   }
-  if (k === "Tipo de abordagem") { var lv=v.toLowerCase().trim(); return lv==="proativa"?"Proativa":lv==="reativa"?"Reativa":v; }
-  if (k === "Cordialidade") { var lv=v.toLowerCase().trim(); return lv==="alto"||lv==="alta"?"Alta":lv==="médio"||lv==="medio"||lv==="média"?"Média":lv==="baixo"||lv==="baixa"?"Baixa":v; }
-  if (k === "Nível de engajamento do vendedor") { var lv=v.toLowerCase().trim(); return lv==="alto"?"Alto":lv==="médio"||lv==="medio"?"Médio":lv==="baixo"?"Baixo":v; }
-  if (k === "Como foi o encerramento do vendedor?") { var lv=v.toLowerCase().trim(); return lv==="sim"||lv==="cordial"?"Cordial":lv==="não"||lv==="nao"||lv==="não cordial"?"Não cordial":v; }
-  if (k === "Como você acha que o cliente saiu da loja?") { var lv=v.toLowerCase().trim(); return lv==="encantado"?"Encantado":lv==="valorizado"?"Valorizado":lv==="neutro"?"Neutro":lv==="frustrado"?"Frustrado":v; }
-  if (k === "Como o vendedor se portou?") { var lv=v.toLowerCase().trim(); return lv==="consultivo"?"Consultivo":lv==="roteiro"?"Roteiro":lv==="básico"||lv==="basico"?"Básico":v; }
-  if (k === "auditoria_status") { var lv=v.toLowerCase().trim(); return lv==="aprovado"||lv==="aprovada"?"Aprovado":lv==="pendente"?"Pendente":lv==="recusado"||lv==="excluída"||lv==="excluida"?"Recusado":lv==="em andamento"?"Em andamento":v; }
+  if (lk === 'tipo de abordagem') { return lv==='proativa'?'Proativa':lv==='reativa'?'Reativa':v; }
+  if (lk === 'cordialidade') { return lv==='alto'||lv==='alta'?'Alta':lv==='m\u00e9dio'||lv==='medio'||lv==='m\u00e9dia'?'M\u00e9dia':lv==='baixo'||lv==='baixa'?'Baixa':v; }
+  if (lk.indexOf('engajamento') >= 0) { return lv==='alto'?'Alto':lv==='m\u00e9dio'||lv==='medio'?'M\u00e9dio':lv==='baixo'?'Baixo':v; }
+  if (lk.indexOf('encerramento') >= 0) { return lv==='sim'||lv==='cordial'?'Cordial':lv==='nao'||lv==='n\u00e3o'||lv.indexOf('cordial')>=0&&lv.indexOf('n')>=0?'N\u00e3o cordial':v; }
+  if (lk.indexOf('cliente saiu') >= 0 || lk.indexOf('sentimento') >= 0) { return lv==='encantado'?'Encantado':lv==='valorizado'?'Valorizado':lv==='neutro'?'Neutro':lv==='frustrado'?'Frustrado':v; }
+  if (lk.indexOf('vendedor se portou') >= 0 || lk.indexOf('nivel') >= 0 || lk.indexOf('n\u00edvel') >= 0) { return lv==='consultivo'?'Consultivo':lv==='roteiro'?'Roteiro':lv==='b\u00e1sico'||lv==='basico'?'B\u00e1sico':v; }
+  if (lk === 'auditoria_status') { return lv==='aprovado'||lv==='aprovada'?'Aprovado':lv==='pendente'?'Pendente':lv==='recusado'||lv.indexOf('exclu')>=0?'Recusado':lv==='em andamento'?'Em andamento':v; }
   return v;
 }
 
