@@ -171,12 +171,12 @@ function dp(val, campo) {
 }
 
 
-function isSim(v) { return v && v.toLowerCase().trim() === 'sim'; }
-function isNao(v) { return v && (v.toLowerCase().trim() === 'não' || v.toLowerCase().trim() === 'nao'); }
-function isCordial(v) { return v && (v.toLowerCase().trim() === 'sim' || v.toLowerCase().trim() === 'cordial'); }
-function isProativa(v) { return v && v.toLowerCase().trim() === 'proativa'; }
+
+function isSim(v) { return !!v && v.toLowerCase().trim() === 'sim'; }
+function isNao(v) { return !!v && (v.toLowerCase().trim() === 'não' || v.toLowerCase().trim() === 'nao'); }
+function isCordial(v) { return !!v && (v.toLowerCase().trim() === 'sim' || v.toLowerCase().trim() === 'cordial'); }
+function isProativa(v) { return !!v && v.toLowerCase().trim() === 'proativa'; }
 function isAltoMedio(v) { if (!v) return false; var lv=v.toLowerCase().trim(); return lv==='alto'||lv==='alta'||lv==='médio'||lv==='medio'||lv==='média'; }
-function isPresente(v) { return v && v.trim() !== ''; }
 function normStatus(v) { if (!v) return ''; var lv=v.toLowerCase().trim(); if(lv==='aprovado'||lv==='aprovada') return 'aprovado'; if(lv==='recusado'||lv.indexOf('exclu')>=0) return 'recusado'; return lv; }
 
 function parseCSV(text) {
@@ -444,9 +444,9 @@ function renderAll() {
         if (v === '') return; // vazio = não aplicável, exclui
         tot++;
         if (c === "Tipo de abordagem") {
-          if (v === "Proativa") sim++;
+          if (isProativa(v)) sim++;
         } else if (c === "Cordialidade" || c === "Nível de engajamento do vendedor") {
-          if (v === "Alta" || v === "Média" || v === "Alto" || v === "Médio") sim++;
+          if (isAltoMedio(v)) sim++;
         } else if (c === "Quantas perguntas exploratórias feitas?") {
           if (parseFloat(v) >= 1) sim++;
         } else {
