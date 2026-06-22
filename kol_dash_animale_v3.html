@@ -361,9 +361,11 @@ function sortTable(tblId, col) {
 
 function renderAll() {
   var data = FILTERED, n = data.length;
-  var convCount = data.filter(function(r){return isSim(r["Conversa convertida em venda?"]);}).length;
+  var convSim = data.filter(function(r){return isSim(r["Conversa convertida em venda?"]);}).length;
+  var convDen = data.filter(function(r){ var v=(r["Conversa convertida em venda?"]||"").toLowerCase().trim(); return v==="sim"||v==="não"||v==="nao"; }).length;
+  var convCount = convSim;
   document.getElementById("kpi-conv").textContent = n;
-  document.getElementById("kpi-conv-pct").textContent = pct(convCount, n) + "%";
+  document.getElementById("kpi-conv-pct").textContent = (convDen>0?Math.round(convSim/convDen*100):0) + "%";
   var durs = data.map(function(r){return parseDuration(r.duracao);}).filter(function(x){return x>0;});
   var am = avg(durs), aM = Math.floor(am), aS = Math.round((am-aM)*60);
   document.getElementById("kpi-tempo").textContent = aM + "m " + aS + "s";
