@@ -111,7 +111,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   </div>
   <div class="filter-chip" id="chip-lojas" onclick="toggleDD('dd-lojas',event)">LOJAS <span id="lojas-badge" class="badge" style="display:none">0</span> ▾<div class="dropdown" id="dd-lojas"></div></div>
   <div class="filter-chip" id="chip-vend" onclick="toggleDD('dd-vend',event)">VENDEDORES <span id="vend-badge" class="badge" style="display:none">0</span> ▾<div class="dropdown" id="dd-vend"></div></div>
-  <div class="filter-chip" onclick="toggleDD('dd-conv',event)">CONVERSAS ▾<div class="dropdown" id="dd-conv" style="min-width:210px"><label><input type="radio" name="conv_filter" value="aprovadas" checked onchange="applyFilters()"> Apenas auditadas</label><label><input type="radio" name="conv_filter" value="todas" onchange="applyFilters()"> Auditadas + pendentes</label></div></div>
+  <div class="filter-chip" onclick="toggleDD('dd-conv',event)">CONVERSAS ▾<div class="dropdown" id="dd-conv" style="min-width:210px"><label><input type="radio" name="conv_filter" value="aprovadas" onchange="applyFilters()"> Apenas auditadas</label><label><input type="radio" name="conv_filter" value="todas" checked onchange="applyFilters()"> Auditadas + pendentes</label></div></div>
   <div class="nav-right">
     <button class="btn-clear" onclick="clearFilters()">limpar filtros</button>
     <div class="filter-chip" onclick="toggleDD('dd-date',event)">📅 <span id="date-label">—</span><div class="dropdown dropdown-date" id="dd-date" onclick="event.stopPropagation()"><label>De</label><input type="date" id="date-from" onchange="applyFilters()"><label>Até</label><input type="date" id="date-to" onchange="applyFilters()"><button onclick="applyFilters();closeAllDD()">Aplicar</button></div></div>
@@ -197,12 +197,33 @@ function parseCSV(text) {
   return rows;
 }
 
+function normVal(k, v) {
+  if (!v) return v;
+  // Campos sim/não
+  var simNaoFields = ["Perguntou o nome do cliente?","Vendedor se apresentou pelo nome?","Fez sondagem para entender a necessidade?","Para uso próprio?","Demonstrou o produto?","Ofereceu café e/ou água?","Demonstrou alternativas à objeção?","Tentou upsell?","Tentou cross sell?","Mencionou algum concorrente?","Conversa convertida em venda?","Vendedor convidou o cliente a retornar?","Vendedor falou do programa de fidelização?","Você considera o comportamento do vendedor adequado?"];
+  if (simNaoFields.indexOf(k) >= 0) {
+    var lv = v.toLowerCase().trim();
+    if (lv === "sim") return "Sim";
+    if (lv === "não" || lv === "nao") return "Não";
+    if (lv === "não aplicável" || lv === "nao aplicavel") return "Não aplicável";
+    return v;
+  }
+  if (k === "Tipo de abordagem") { var lv=v.toLowerCase().trim(); return lv==="proativa"?"Proativa":lv==="reativa"?"Reativa":v; }
+  if (k === "Cordialidade") { var lv=v.toLowerCase().trim(); return lv==="alto"||lv==="alta"?"Alta":lv==="médio"||lv==="medio"||lv==="média"?"Média":lv==="baixo"||lv==="baixa"?"Baixa":v; }
+  if (k === "Nível de engajamento do vendedor") { var lv=v.toLowerCase().trim(); return lv==="alto"?"Alto":lv==="médio"||lv==="medio"?"Médio":lv==="baixo"?"Baixo":v; }
+  if (k === "Como foi o encerramento do vendedor?") { var lv=v.toLowerCase().trim(); return lv==="sim"||lv==="cordial"?"Cordial":lv==="não"||lv==="nao"||lv==="não cordial"?"Não cordial":v; }
+  if (k === "Como você acha que o cliente saiu da loja?") { var lv=v.toLowerCase().trim(); return lv==="encantado"?"Encantado":lv==="valorizado"?"Valorizado":lv==="neutro"?"Neutro":lv==="frustrado"?"Frustrado":v; }
+  if (k === "Como o vendedor se portou?") { var lv=v.toLowerCase().trim(); return lv==="consultivo"?"Consultivo":lv==="roteiro"?"Roteiro":lv==="básico"||lv==="basico"?"Básico":v; }
+  if (k === "auditoria_status") { var lv=v.toLowerCase().trim(); return lv==="aprovado"||lv==="aprovada"?"Aprovado":lv==="pendente"?"Pendente":lv==="recusado"||lv==="excluída"||lv==="excluida"?"Recusado":lv==="em andamento"?"Em andamento":v; }
+  return v;
+}
+
 function rowsToObjects(rows) {
   if (rows.length < 2) return [];
   var h = rows[0];
   return rows.slice(1).map(function(r) {
     var o = {};
-    h.forEach(function(k, i) { o[k] = r[i] || ""; });
+    h.forEach(function(k, i) { o[k] = normVal(k, r[i] || ""); });
     return o;
   });
 }
@@ -245,7 +266,7 @@ function renderHBars(id, data, color) {
 }
 
 var ALL_DATA = [], FILTERED = [];
-var filters = {lojas: [], vendedores: [], conv: "aprovadas", dateFrom: "", dateTo: ""};
+var filters = {lojas: [], vendedores: [], conv: "todas", dateFrom: "", dateTo: ""};
 
 function applyFilters() {
   var cv = document.querySelector("input[name=\"conv_filter\"]:checked");
@@ -274,7 +295,7 @@ function applyFilters() {
 function clearFilters() {
   filters = {lojas: [], vendedores: [], conv: "aprovadas", dateFrom: "", dateTo: ""};
   document.querySelectorAll(".dropdown input[type=checkbox]").forEach(function(i){i.checked=false;});
-  var r = document.querySelector("input[name=\"conv_filter\"][value=\"aprovadas\"]");
+  var r = document.querySelector("input[name=\"conv_filter\"][value=\"todas\"]");
   if (r) r.checked = true;
   document.getElementById("date-from").value = "";
   document.getElementById("date-to").value = "";
