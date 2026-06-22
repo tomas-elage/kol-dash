@@ -552,9 +552,9 @@ function renderClienteView(data) {
     var p2=pct(e[1].conv,e[1].total);
     return "<div class=\"hbar-row\"><span class=\"hbar-lbl\">"+e[0]+"</span><div class=\"hbar-track\"><div class=\"hbar-fill\" style=\"width:"+p2+"%\"></div></div><span class=\"hbar-val\">"+p2+"%</span></div>";
   }).join("");
-  var sc = {"Encantado","Valorizado","Neutro","Frustrado":0};
+  var sc = {"Encantado":0,"Valorizado":0,"Neutro":0,"Frustrado":0};
   data.forEach(function(r){ if(r["Como você acha que o cliente saiu da loja?"]) sc[r["Como você acha que o cliente saiu da loja?"]]=(sc[r["Como você acha que o cliente saiu da loja?"]]||0)+1; });
-  var scol = {"Encantado","Valorizado","Neutro","Frustrado":"#22c55e"};
+  var scol = {"Encantado":"#22c55e","Valorizado":"#3b82f6","Neutro":"#6b7280","Frustrado":"#ef4444"};
   document.getElementById("sentimento-bars").innerHTML = Object.entries(sc).map(function(e){
     return "<div class=\"hbar-row\"><span class=\"hbar-lbl\">"+e[0]+"</span><div class=\"hbar-track\"><div class=\"hbar-fill\" style=\"width:"+pct(e[1],n)+"%;background:"+scol[e[0]]+"\"></div></div></div>";
   }).join("");
