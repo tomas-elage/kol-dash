@@ -170,6 +170,15 @@ function dp(val, campo) {
   return m[(val || "").toLowerCase().trim()] || val;
 }
 
+
+function isSim(v) { return v && v.toLowerCase().trim() === 'sim'; }
+function isNao(v) { return v && (v.toLowerCase().trim() === 'não' || v.toLowerCase().trim() === 'nao'); }
+function isCordial(v) { return v && (v.toLowerCase().trim() === 'sim' || v.toLowerCase().trim() === 'cordial'); }
+function isProativa(v) { return v && v.toLowerCase().trim() === 'proativa'; }
+function isAltoMedio(v) { if (!v) return false; var lv=v.toLowerCase().trim(); return lv==='alto'||lv==='alta'||lv==='médio'||lv==='medio'||lv==='média'; }
+function isPresente(v) { return v && v.trim() !== ''; }
+function normStatus(v) { if (!v) return ''; var lv=v.toLowerCase().trim(); if(lv==='aprovado'||lv==='aprovada') return 'aprovado'; if(lv==='recusado'||lv.indexOf('exclu')>=0) return 'recusado'; return lv; }
+
 function parseCSV(text) {
   var rows = [], i = 0;
   while (i < text.length) {
@@ -197,32 +206,12 @@ function parseCSV(text) {
   return rows;
 }
 
-function normVal(k, v) {
-  if (!v) return v;
-  var lv = v.toLowerCase().trim();
-  var lk = (k||'').toLowerCase();
-  // sim/não para todos os campos que terminam com "?"
-  if (lk.charAt(lk.length-1) === '?') {
-    if (lv === 'sim') return 'Sim';
-    if (lv === 'nao' || lv === 'n\u00e3o') return 'N\u00e3o';
-    if (lv === 'nao aplicavel' || lv === 'n\u00e3o aplic\u00e1vel' || lv === 'nao aplic\u00e1vel') return 'N\u00e3o aplic\u00e1vel';
-  }
-  if (lk === 'tipo de abordagem') { return lv==='proativa'?'Proativa':lv==='reativa'?'Reativa':v; }
-  if (lk === 'cordialidade') { return lv==='alto'||lv==='alta'?'Alta':lv==='m\u00e9dio'||lv==='medio'||lv==='m\u00e9dia'?'M\u00e9dia':lv==='baixo'||lv==='baixa'?'Baixa':v; }
-  if (lk.indexOf('engajamento') >= 0) { return lv==='alto'?'Alto':lv==='m\u00e9dio'||lv==='medio'?'M\u00e9dio':lv==='baixo'?'Baixo':v; }
-  if (lk.indexOf('encerramento') >= 0) { return lv==='sim'||lv==='cordial'?'Cordial':lv==='nao'||lv==='n\u00e3o'||lv.indexOf('cordial')>=0&&lv.indexOf('n')>=0?'N\u00e3o cordial':v; }
-  if (lk.indexOf('cliente saiu') >= 0 || lk.indexOf('sentimento') >= 0) { return lv==='encantado'?'Encantado':lv==='valorizado'?'Valorizado':lv==='neutro'?'Neutro':lv==='frustrado'?'Frustrado':v; }
-  if (lk.indexOf('vendedor se portou') >= 0 || lk.indexOf('nivel') >= 0 || lk.indexOf('n\u00edvel') >= 0) { return lv==='consultivo'?'Consultivo':lv==='roteiro'?'Roteiro':lv==='b\u00e1sico'||lv==='basico'?'B\u00e1sico':v; }
-  if (lk === 'auditoria_status') { return lv==='aprovado'||lv==='aprovada'?'Aprovado':lv==='pendente'?'Pendente':lv==='recusado'||lv.indexOf('exclu')>=0?'Recusado':lv==='em andamento'?'Em andamento':v; }
-  return v;
-}
-
 function rowsToObjects(rows) {
   if (rows.length < 2) return [];
   var h = rows[0];
   return rows.slice(1).map(function(r) {
     var o = {};
-    h.forEach(function(k, i) { o[k] = normVal(k, r[i] || ""); });
+    h.forEach(function(k, i) { o[k] = r[i] || ""; });
     return o;
   });
 }
@@ -275,8 +264,8 @@ function applyFilters() {
   var d1 = filters.dateFrom, d2 = filters.dateTo;
   FILTERED = ALL_DATA.filter(function(r) {
     var s = (r.auditoria_status || "").toLowerCase();
-    if (s === "recusado") return false;
-    if (filters.conv === "aprovadas" && s !== "aprovado") return false;
+    if (normStatus(s) === "recusado") return false;
+    if (filters.conv === "aprovadas" && normStatus(s) !== "aprovado") return false;
     if (filters.lojas.length && filters.lojas.indexOf(r.loja) === -1) return false;
     if (filters.vendedores.length && filters.vendedores.indexOf(r.vendedor) === -1) return false;
     if (d1 || d2) {
@@ -372,7 +361,7 @@ function sortTable(tblId, col) {
 
 function renderAll() {
   var data = FILTERED, n = data.length;
-  var convCount = data.filter(function(r){return r["Conversa convertida em venda?"] === "Sim";}).length;
+  var convCount = data.filter(function(r){return isSim(r["Conversa convertida em venda?"]);}).length;
   document.getElementById("kpi-conv").textContent = n;
   document.getElementById("kpi-conv-pct").textContent = pct(convCount, n) + "%";
   var durs = data.map(function(r){return parseDuration(r.duracao);}).filter(function(x){return x>0;});
@@ -396,7 +385,7 @@ function renderAll() {
     if (!r.vendedor) return;
     if (!byV[r.vendedor]) byV[r.vendedor] = {conv:0,total:0,ader:[]};
     byV[r.vendedor].total++;
-    if (r["Conversa convertida em venda?"] === "Sim") byV[r.vendedor].conv++;
+    if (isSim(r["Conversa convertida em venda?"])) byV[r.vendedor].conv++;
     var a = parseFloat(r["Aderência ao playbook (%)"]);
     if (!isNaN(a)) byV[r.vendedor].ader.push(a);
   });
@@ -411,7 +400,7 @@ function renderAll() {
     if (!r.loja) return;
     if (!byL[r.loja]) byL[r.loja] = {conv:0,total:0,ader:[]};
     byL[r.loja].total++;
-    if (r["Conversa convertida em venda?"] === "Sim") byL[r.loja].conv++;
+    if (isSim(r["Conversa convertida em venda?"])) byL[r.loja].conv++;
     var a = parseFloat(r["Aderência ao playbook (%)"]);
     if (!isNaN(a)) byL[r.loja].ader.push(a);
   });
@@ -428,12 +417,12 @@ function renderAll() {
   }).join("");
 
   var etapas = [
-    ["Abordagem",   function(d){return d.filter(function(r){return r["Vendedor se apresentou pelo nome?"] === "Sim";}).length;}],
-    ["Sondagem",    function(d){return d.filter(function(r){return r["Fez sondagem para entender a necessidade?"] === "Sim";}).length;}],
-    ["Demonstração",function(d){return d.filter(function(r){return r["Demonstrou o produto?"] === "Sim";}).length;}],
+    ["Abordagem",   function(d){return d.filter(function(r){return isSim(r["Vendedor se apresentou pelo nome?"]);}).length;}],
+    ["Sondagem",    function(d){return d.filter(function(r){return isSim(r["Fez sondagem para entender a necessidade?"]);}).length;}],
+    ["Demonstração",function(d){return d.filter(function(r){return isSim(r["Demonstrou o produto?"]);}).length;}],
     ["Objeções",    function(d){return d.filter(function(r){return r["Qual foi a objeção?"]&&r["Qual foi a objeção?"].trim()!=="";}).length;}],
-    ["Fechamento",  function(d){return d.filter(function(r){return r["Como foi o encerramento do vendedor?"] === "Cordial";}).length;}],
-    ["Conversão",   function(d){return d.filter(function(r){return r["Conversa convertida em venda?"] === "Sim";}).length;}]
+    ["Fechamento",  function(d){return d.filter(function(r){return isCordial(r["Como foi o encerramento do vendedor?"]);}).length;}],
+    ["Conversão",   function(d){return d.filter(function(r){return isSim(r["Conversa convertida em venda?"]);}).length;}]
   ];
   document.getElementById("funil-list").innerHTML = etapas.map(function(e){
     var p = pct(e[1](data), n);
@@ -459,7 +448,7 @@ function renderAll() {
         } else if (c === "Quantas perguntas exploratórias feitas?") {
           if (parseFloat(v) >= 1) sim++;
         } else {
-          if (v === 'sim') sim++;
+          if (isSim(v)) sim++;
         }
       });
       return tot === 0 ? null : sim / tot;
@@ -546,7 +535,7 @@ function renderClienteView(data) {
   data.forEach(function(r){ if(r["Como o vendedor se portou?"]) perfis[r["Como o vendedor se portou?"]] = (perfis[r["Como o vendedor se portou?"]]||0)+1; });
   updateDonut("chartPerfil","leg-perfil",[perfis["Consultivo"]||0,perfis["Roteiro"]||0,perfis["Básico"]||0],["#06b6d4","#3b82f6","#f59e0b"],["Consultivo","Roteiro","Básico"],n);
   var pc = {};
-  data.forEach(function(r){ var p=r["Como o vendedor se portou?"]; if(!p)return; if(!pc[p])pc[p]={conv:0,total:0}; pc[p].total++; if(r["Conversa convertida em venda?"] === "Sim")pc[p].conv++; });
+  data.forEach(function(r){ var p=r["Como o vendedor se portou?"]; if(!p)return; if(!pc[p])pc[p]={conv:0,total:0}; pc[p].total++; if(isSim(r["Conversa convertida em venda?"]))pc[p].conv++; });
   document.getElementById("perfil-converte").innerHTML = Object.entries(pc).map(function(e){
     var p2=pct(e[1].conv,e[1].total);
     return "<div class=\"hbar-row\"><span class=\"hbar-lbl\">"+e[0]+"</span><div class=\"hbar-track\"><div class=\"hbar-fill\" style=\"width:"+p2+"%\"></div></div><span class=\"hbar-val\">"+p2+"%</span></div>";
@@ -565,9 +554,9 @@ function renderClienteView(data) {
   renderHBars("hbar-motivo", countBy(data,"motivo_visita","motivo_visita"), "var(--blue)");
   renderHBars("hbar-produto", countBy(data,"produto","produto"), "var(--blue)");
   document.getElementById("hbar-combo").innerHTML = "<p style=\"color:var(--text-dim);font-size:11px;padding:4px 0\">Disponível no dashboard KOL</p>";
-  updateDonut("chartItens","leg-itens",[data.filter(function(r){return r["Conversa convertida em venda?"] === "Sim";}).length,data.filter(function(r){return r["Conversa convertida em venda?"]!=="sim";}).length],["#06b6d4","#4a5568"],["Converteu","Não converteu"],n);
+  updateDonut("chartItens","leg-itens",[data.filter(function(r){return isSim(r["Conversa convertida em venda?"]);}).length,data.filter(function(r){return r["Conversa convertida em venda?"]!=="sim";}).length],["#06b6d4","#4a5568"],["Converteu","Não converteu"],n);
   var oa = {};
-  data.forEach(function(r){ if(!r["Qual foi a objeção?"])return; var k=dp(r["Qual foi a objeção?"],"objecao"); if(!oa[k])oa[k]={freq:0,conv:0}; oa[k].freq++; if(r["Conversa convertida em venda?"] === "Sim")oa[k].conv++; });
+  data.forEach(function(r){ if(!r["Qual foi a objeção?"])return; var k=dp(r["Qual foi a objeção?"],"objecao"); if(!oa[k])oa[k]={freq:0,conv:0}; oa[k].freq++; if(isSim(r["Conversa convertida em venda?"]))oa[k].conv++; });
   document.getElementById("tbl-obj-body").innerHTML = Object.entries(oa).sort(function(a,b){return b[1].freq-a[1].freq;}).map(function(e){
     var cp2=pct(e[1].conv,e[1].freq);
     var st=cp2>=50?"color:var(--green)":cp2>=25?"color:var(--warn)":"color:var(--bad)";
