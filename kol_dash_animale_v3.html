@@ -479,7 +479,7 @@ function renderAll() {
     return "<tr><td>"+c.label+"</td><td class=\"num\" style=\"color:var(--cyan);font-weight:600\">"+c.p+"%</td></tr>";
   }).join("");
 
-  // Funil: denominador = só sim+não (exclui vazio e não aplicável)
+  // Funil processual: cada etapa é independente, mostra % de conversas que passaram por ela
   function funilPct(d, simFn, field) {
     var sim=0, tot=0;
     d.forEach(function(r){
@@ -491,11 +491,9 @@ function renderAll() {
     return tot>0?Math.round(sim/tot*100):0;
   }
   var etapas = [
-    {label:"Abordagem",    p:funilPct(data,isSim,"Vendedor se apresentou pelo nome?")},
-    {label:"Sondagem",     p:funilPct(data,isSim,"Fez sondagem para entender a necessidade?")},
+    {label:"Abordagem",    p:100},
+    {label:"Sondagem",     p:funilPct(data,function(v){return parseFloat(v)>=1;},"Quantas perguntas exploratórias feitas?")},
     {label:"Demonstração", p:funilPct(data,isSim,"Demonstrou o produto?")},
-    {label:"Objeções",     p:(function(){var c=data.filter(function(r){return r["Qual foi a objeção?"]&&r["Qual foi a objeção?"].trim()!=="";}).length; return n>0?Math.round(c/n*100):0;})()},
-    {label:"Fechamento",   p:funilPct(data,isCordial,"Como foi o encerramento do vendedor?")},
     {label:"Conversão",    p:convDen>0?Math.round(convSim/convDen*100):0},
   ];
   document.getElementById("funil-list").innerHTML = etapas.map(function(e){
