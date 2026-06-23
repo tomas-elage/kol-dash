@@ -315,17 +315,9 @@ function setView(v) {
   document.getElementById("btn-at").classList.toggle("active", v === "at");
   document.getElementById("btn-cl").classList.toggle("active", v === "cl");
   if (v === "cl") renderClienteView(FILTERED);
-  var filtDest = ALL_DEST.filter(function(d) {
-    if (filters.lojas.length && filters.lojas.indexOf(d.loja) === -1) return false;
-    if (filters.vendedores.length && filters.vendedores.indexOf(d.vendedor) === -1) return false;
-    if (filters.dateFrom || filters.dateTo) {
-      var rd = parseDate(d.data_hora);
-      if (filters.dateFrom && rd < new Date(filters.dateFrom)) return false;
-      if (filters.dateTo  && rd > new Date(filters.dateTo + "T23:59:59")) return false;
-    }
-    return true;
-  });
-  renderDestaques(filtDest);
+  var _snap = new Set(FILTERED.map(function(r){return r.conversa_id || r["conversa_id"];}));
+  var _fd = ALL_DEST.filter(function(d){return _snap.has(d.conversa_id);});
+  setTimeout(function(){renderDestaques(_fd);},0);
 }
 
 function toggleDD(id, e) {
@@ -663,6 +655,11 @@ function renderAll() {
     var bg = b.p>=70?"rgba(74,222,128,.15)":b.p>=40?"rgba(251,146,60,.15)":"rgba(248,113,113,.15)";
     return "<div class=\"bloco-item\">"+tooltip+"<div class=\"bloco-circle\" style=\"background:"+bg+"\">"+b.icon+"</div><div class=\"bloco-name\">"+b.name+"</div><div class=\"bloco-pct "+cls+"\">"+b.p+"%</div></div>";
   }).join("");
+
+  // Atualiza destaques com as conversas filtradas
+  var _dIds = new Set(FILTERED.map(function(r){return r.conversa_id || r["conversa_id"];}));
+  var _dFilt = ALL_DEST.filter(function(d){return _dIds.has(d.conversa_id);});
+  renderDestaques(_dFilt);
 }
 
 var donutCharts = {};
@@ -743,7 +740,6 @@ async function loadData() {
     document.getElementById("last-update").textContent = "Atualizado: " + new Date().toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",hour:"2-digit",minute:"2-digit"});
     buildDropdowns(ALL_DATA);
     applyFilters();
-    renderDestaques(ALL_DEST); // garante renderização após load completo
     document.getElementById("loading").style.display = "none";
     document.getElementById("dash").style.display = "";
   } catch(err) {
