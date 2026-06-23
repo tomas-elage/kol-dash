@@ -128,8 +128,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 <div class="main">
 <div id="view-at">
   <div class="row4" style="margin-bottom:12px">
-    <div class="card"><div class="card-title">Ranking de Vendedores</div><div class="card-sub">Por índice de performance</div><div class="tbl-wrap"><table class="stbl" id="tbl-vend"><thead><tr><th onclick="sortTable('tbl-vend',0)">Pos<span class="sort-arrow" id="tbl-vend-0">↕</span></th><th onclick="sortTable('tbl-vend',1)">Vendedor<span class="sort-arrow" id="tbl-vend-1">↕</span></th><th onclick="sortTable('tbl-vend',2)" style="text-align:right">Conv.<span class="sort-arrow" id="tbl-vend-2">↕</span></th><th onclick="sortTable('tbl-vend',3)" style="text-align:right">Ader.<span class="sort-arrow" id="tbl-vend-3">↕</span></th><th onclick="sortTable('tbl-vend',4)" style="text-align:right">#Conv.<span class="sort-arrow" id="tbl-vend-4">↕</span></th></tr></thead><tbody id="tbl-vend-body"></tbody></table></div></div>
-    <div class="card"><div class="card-title">Ranking de Lojas</div><div class="card-sub">Por conversão (%)</div><div class="tbl-wrap"><table class="stbl" id="tbl-lojas"><thead><tr><th onclick="sortTable('tbl-lojas',0)">Pos<span class="sort-arrow" id="tbl-lojas-0">↕</span></th><th onclick="sortTable('tbl-lojas',1)">Loja<span class="sort-arrow" id="tbl-lojas-1">↕</span></th><th onclick="sortTable('tbl-lojas',2)" style="text-align:right">Conv.<span class="sort-arrow" id="tbl-lojas-2">↕</span></th><th onclick="sortTable('tbl-lojas',3)" style="text-align:right">Ader.<span class="sort-arrow" id="tbl-lojas-3">↕</span></th><th onclick="sortTable('tbl-lojas',4)" style="text-align:right">#Conv.<span class="sort-arrow" id="tbl-lojas-4">↕</span></th></tr></thead><tbody id="tbl-lojas-body"></tbody></table></div></div>
+    <div class="card"><div class="card-title">Ranking de Vendedores</div><div class="card-sub">Por índice de performance</div><div class="tbl-wrap"><table class="stbl" id="tbl-vend"><thead><tr><th onclick="sortTable('tbl-vend',0)">Pos<span class="sort-arrow" id="tbl-vend-0">↕</span></th><th onclick="sortTable('tbl-vend',1)">Vendedor<span class="sort-arrow" id="tbl-vend-1">↕</span></th><th onclick="sortTable('tbl-vend',2)" style="text-align:right">#Conv<span class="sort-arrow" id="tbl-vend-2">↕</span></th><th onclick="sortTable('tbl-vend',3)" style="text-align:right">Ader.<span class="sort-arrow" id="tbl-vend-3">↕</span></th><th onclick="sortTable('tbl-vend',4)" style="text-align:right">Conv.%<span class="sort-arrow" id="tbl-vend-4">↕</span></th></tr></thead><tbody id="tbl-vend-body"></tbody></table></div></div>
+    <div class="card"><div class="card-title">Ranking de Lojas</div><div class="card-sub">Por conversão (%)</div><div class="tbl-wrap"><table class="stbl" id="tbl-lojas"><thead><tr><th onclick="sortTable('tbl-lojas',0)">Pos<span class="sort-arrow" id="tbl-lojas-0">↕</span></th><th onclick="sortTable('tbl-lojas',1)">Loja<span class="sort-arrow" id="tbl-lojas-1">↕</span></th><th onclick="sortTable('tbl-lojas',2)" style="text-align:right">#Conv<span class="sort-arrow" id="tbl-lojas-2">↕</span></th><th onclick="sortTable('tbl-lojas',3)" style="text-align:right">Ader.<span class="sort-arrow" id="tbl-lojas-3">↕</span></th><th onclick="sortTable('tbl-lojas',4)" style="text-align:right">Conv.%<span class="sort-arrow" id="tbl-lojas-4">↕</span></th></tr></thead><tbody id="tbl-lojas-body"></tbody></table></div></div>
     <div class="card"><div class="card-title">Indicadores Mais Presentes</div><div class="card-sub">Cumpridos no maior número de conversas</div><div class="tbl-wrap" style="max-height:170px"><table class="stbl"><thead><tr><th>Indicador</th><th style="text-align:right">%</th></tr></thead><tbody id="tbl-ind-body"></tbody></table></div></div>
     <div class="card"><div class="card-title">Métricas da Conversa</div><div class="metrics-grid"><div><div class="metric-label">Tempo Médio</div><div class="metric-val" id="m-tempo">—</div></div><div><div class="metric-label">Total Conversas</div><div class="metric-val" id="m-total">—</div></div></div><div class="fala-label">Fala: Vendedor × Cliente</div><div class="fala-bar"><div class="v" id="fala-v" style="width:50%"></div><div class="c" id="fala-c" style="width:50%"></div></div><div class="fala-legend"><span><span class="dot" style="background:var(--blue)"></span>Vendedor <span id="fala-vp">—</span></span><span><span class="dot" style="background:var(--cyan)"></span>Cliente <span id="fala-cp">—</span></span></div></div>
   </div>
@@ -385,51 +385,113 @@ function renderAll() {
   var byV = {};
   data.forEach(function(r) {
     if (!r.vendedor) return;
-    if (!byV[r.vendedor]) byV[r.vendedor] = {conv:0,total:0,ader:[]};
+    if (!byV[r.vendedor]) byV[r.vendedor] = {conv:0,total:0,convDen:0};
     byV[r.vendedor].total++;
-    if (isSim(r["Conversa convertida em venda?"])) byV[r.vendedor].conv++;
-    var a = parseFloat(r["Aderência ao playbook (%)"]);
-    if (!isNaN(a)) byV[r.vendedor].ader.push(a);
+    var cv = (r["Conversa convertida em venda?"]||"").toLowerCase().trim();
+    if (cv==="sim") byV[r.vendedor].conv++;
+    if (cv==="sim"||cv==="não"||cv==="nao") byV[r.vendedor].convDen++;
   });
+  // Calcula aderência por blocos para cada vendedor
+  var blocosCampos = [
+    ['abordagem','Tipo de abordagem','Vendedor se apresentou pelo nome?','Perguntou o nome do cliente?','Ofereceu café e/ou água?'],
+    ['Fez sondagem para entender a necessidade?','Quantas perguntas exploratórias feitas?'],
+    ['Demonstrou o produto?','Demonstrou alternativas à objeção?','Tentou upsell?','Tentou cross sell?'],
+    ['Cordialidade','Nível de engajamento do vendedor','Você considera o comportamento do vendedor adequado?'],
+    ['Como foi o encerramento do vendedor?','Vendedor convidou o cliente a retornar?','Vendedor falou do programa de fidelização?']
+  ];
+  function aderVendedor(rows) {
+    var blocoScores = blocosCampos.map(function(campos) {
+      return blocoAder(rows, campos);
+    }).filter(function(x){return x!==null;});
+    return blocoScores.length ? Math.round(blocoScores.reduce(function(a,b){return a+b;},0)/blocoScores.length) : null;
+  }
   document.getElementById("tbl-vend-body").innerHTML = Object.entries(byV).map(function(e){
-    return {nm:e[0], cp:pct(e[1].conv,e[1].total), ad:Math.round(avg(e[1].ader)), t:e[1].total};
-  }).sort(function(a,b){return b.cp-a.cp;}).map(function(r,i){
-    return "<tr><td style=\"color:var(--text-dim);font-size:11px\">"+(i+1)+"º</td><td>"+r.nm+"</td><td class=\"good\">"+r.cp+"%</td><td class=\"num\">"+r.ad+"%</td><td class=\"num\">"+r.t+"</td></tr>";
+    var vRows = data.filter(function(r){return r.vendedor===e[0];});
+    var ad = aderVendedor(vRows);
+    var cp = e[1].convDen>0?Math.round(e[1].conv/e[1].convDen*100):0;
+    var nm = e[0].length>18?e[0].slice(0,16)+'…':e[0];
+    return {nm:nm, nmFull:e[0], cp:cp, ad:ad!==null?ad:0, t:e[1].total};
+  }).sort(function(a,b){return b.ad-a.ad;}).map(function(r,i){
+    return "<tr><td style=\"color:var(--text-dim);font-size:11px\">"+(i+1)+"º</td><td title=\""+r.nmFull+"\">"+r.nm+"</td><td class=\"num\">"+r.t+"</td><td class=\"num\">"+r.ad+"%</td><td class=\"good\">"+r.cp+"%</td></tr>";
   }).join("");
 
   var byL = {};
   data.forEach(function(r) {
     if (!r.loja) return;
-    if (!byL[r.loja]) byL[r.loja] = {conv:0,total:0,ader:[]};
+    if (!byL[r.loja]) byL[r.loja] = {conv:0,total:0,convDen:0};
     byL[r.loja].total++;
-    if (isSim(r["Conversa convertida em venda?"])) byL[r.loja].conv++;
-    var a = parseFloat(r["Aderência ao playbook (%)"]);
-    if (!isNaN(a)) byL[r.loja].ader.push(a);
+    var cv = (r["Conversa convertida em venda?"]||"").toLowerCase().trim();
+    if (cv==="sim") byL[r.loja].conv++;
+    if (cv==="sim"||cv==="não"||cv==="nao") byL[r.loja].convDen++;
   });
   document.getElementById("tbl-lojas-body").innerHTML = Object.entries(byL).map(function(e){
-    return {nm:e[0], cp:pct(e[1].conv,e[1].total), ad:Math.round(avg(e[1].ader)), t:e[1].total};
-  }).sort(function(a,b){return b.cp-a.cp;}).map(function(r,i){
-    return "<tr><td style=\"color:var(--text-dim);font-size:11px\">"+(i+1)+"º</td><td>"+r.nm+"</td><td class=\"good\">"+r.cp+"%</td><td class=\"num\">"+r.ad+"%</td><td class=\"num\">"+r.t+"</td></tr>";
+    var lRows = data.filter(function(r){return r.loja===e[0];});
+    var ad = aderVendedor(lRows);
+    var cp = e[1].convDen>0?Math.round(e[1].conv/e[1].convDen*100):0;
+    var nm = e[0].length>18?e[0].slice(0,16)+'…':e[0];
+    return {nm:nm, nmFull:e[0], cp:cp, ad:ad!==null?ad:0, t:e[1].total};
+  }).sort(function(a,b){return b.ad-a.ad;}).map(function(r,i){
+    return "<tr><td style=\"color:var(--text-dim);font-size:11px\">"+(i+1)+"º</td><td title=\""+r.nmFull+"\">"+r.nm+"</td><td class=\"num\">"+r.t+"</td><td class=\"num\">"+r.ad+"%</td><td class=\"good\">"+r.cp+"%</td></tr>";
   }).join("");
 
-  var inds = [["Ofereceu café e/ou água?","Ofertou café/água"],["Perguntou o nome do cliente?","Solicitou nome"],["Vendedor se apresentou pelo nome?","Vendedor se apresentou"],["Demonstrou o produto?","Demonstrou o produto"],["Demonstrou alternativas à objeção?","Apresentou alternativas"],["Tentou upsell?","Tentou upsell"],["Tentou cross sell?","Tentou cross-sell"],["Vendedor convidou o cliente a retornar?","Convidou a retornar"],["Vendedor falou do programa de fidelização?","Plano de fidelização"]];
-  var ic = inds.map(function(x){ return {label:x[1], pct2:pct(data.filter(function(r){return r[x[0]]==="sim";}).length, n)}; }).sort(function(a,b){return b.pct2-a.pct2;});
+  var indsCfg = [
+    {f:"Cordialidade",                                  sim:function(v){return isAltoMedio(v);}, lbS:"Foi cordial",              lbN:"Não foi cordial"},
+    {f:"Vendedor falou do programa de fidelização?",    sim:isSim, lbS:"Ofereceu fidelização",         lbN:"Não ofereceu fidelização"},
+    {f:"Você considera o comportamento do vendedor adequado?", sim:isSim, lbS:"Comportamento adequado", lbN:"Comportamento inadequado"},
+    {f:"Nível de engajamento do vendedor",              sim:function(v){return isAltoMedio(v);}, lbS:"Engajou com o cliente",    lbN:"Não engajou"},
+    {f:"Demonstrou o produto?",                        sim:isSim, lbS:"Demonstrou produto",            lbN:"Não demonstrou produto"},
+    {f:"Vendedor se apresentou pelo nome?",             sim:isSim, lbS:"Vendedor se apresentou",       lbN:"Não se apresentou"},
+    {f:"Tentou upsell?",                               sim:isSim, lbS:"Fez up sell",                  lbN:"Não fez up sell"},
+    {f:"Ofereceu café e/ou água?",                     sim:isSim, lbS:"Ofereceu café/água",            lbN:"Não ofereceu café/água"},
+    {f:"Quantas perguntas exploratórias feitas?",       sim:function(v){return parseFloat(v)>=1;},     lbS:"Fez perguntas exploratórias", lbN:"Não fez perguntas exploratórias"},
+    {f:"Demonstrou alternativas à objeção?",           sim:isSim, lbS:"Apresentou alternativas",      lbN:"Não apresentou alternativas"},
+    {f:"Tipo de abordagem",                            sim:isProativa, lbS:"Abordagem proativa",       lbN:"Cliente que abordou"},
+    {f:"Como foi o encerramento do vendedor?",         sim:isCordial, lbS:"Encerrou de forma cordial", lbN:"Encerrou de forma não cordial"},
+    {f:"Fez sondagem para entender a necessidade?",    sim:isSim, lbS:"Sondou a necessidade",         lbN:"Não fez sondagem de necessidade"},
+    {f:"Tentou cross sell?",                           sim:isSim, lbS:"Fez cross sell",               lbN:"Não fez cross sell"},
+    {f:"Vendedor convidou o cliente a retornar?",      sim:isSim, lbS:"Convidou a retornar",          lbN:"Não convidou a retornar"},
+    {f:"Perguntou o nome do cliente?",                 sim:isSim, lbS:"Perguntou o nome do cliente",  lbN:"Não perguntou o nome"},
+  ];
+  var ic = [];
+  indsCfg.forEach(function(x) {
+    var simCount=0, naoCount=0;
+    data.forEach(function(r){
+      var v = r[x.f];
+      if (!v||v.trim()===""||v.toLowerCase().trim()==="não aplicável") return;
+      if (x.sim(v)) simCount++; else naoCount++;
+    });
+    var den = simCount + naoCount;
+    if (den===0) return;
+    ic.push({label:x.lbS, p:Math.round(simCount/den*100)});
+    ic.push({label:x.lbN, p:Math.round(naoCount/den*100)});
+  });
+  ic.sort(function(a,b){return b.p-a.p;});
   document.getElementById("tbl-ind-body").innerHTML = ic.map(function(c){
-    return "<tr><td>"+c.label+"</td><td class=\"num\" style=\"color:var(--cyan);font-weight:600\">"+c.pct2+"%</td></tr>";
+    return "<tr><td>"+c.label+"</td><td class=\"num\" style=\"color:var(--cyan);font-weight:600\">"+c.p+"%</td></tr>";
   }).join("");
 
+  // Funil: denominador = só sim+não (exclui vazio e não aplicável)
+  function funilPct(d, simFn, field) {
+    var sim=0, tot=0;
+    d.forEach(function(r){
+      var v = r[field];
+      if (!v||v.trim()===""||v.toLowerCase().trim()==="não aplicável") return;
+      tot++;
+      if (simFn(v)) sim++;
+    });
+    return tot>0?Math.round(sim/tot*100):0;
+  }
   var etapas = [
-    ["Abordagem",   function(d){return d.filter(function(r){return isSim(r["Vendedor se apresentou pelo nome?"]);}).length;}],
-    ["Sondagem",    function(d){return d.filter(function(r){return isSim(r["Fez sondagem para entender a necessidade?"]);}).length;}],
-    ["Demonstração",function(d){return d.filter(function(r){return isSim(r["Demonstrou o produto?"]);}).length;}],
-    ["Objeções",    function(d){return d.filter(function(r){return r["Qual foi a objeção?"]&&r["Qual foi a objeção?"].trim()!=="";}).length;}],
-    ["Fechamento",  function(d){return d.filter(function(r){return isCordial(r["Como foi o encerramento do vendedor?"]);}).length;}],
-    ["Conversão",   function(d){return d.filter(function(r){return isSim(r["Conversa convertida em venda?"]);}).length;}]
+    {label:"Abordagem",    p:funilPct(data,isSim,"Vendedor se apresentou pelo nome?")},
+    {label:"Sondagem",     p:funilPct(data,isSim,"Fez sondagem para entender a necessidade?")},
+    {label:"Demonstração", p:funilPct(data,isSim,"Demonstrou o produto?")},
+    {label:"Objeções",     p:(function(){var c=data.filter(function(r){return r["Qual foi a objeção?"]&&r["Qual foi a objeção?"].trim()!=="";}).length; return n>0?Math.round(c/n*100):0;})()},
+    {label:"Fechamento",   p:funilPct(data,isCordial,"Como foi o encerramento do vendedor?")},
+    {label:"Conversão",    p:convDen>0?Math.round(convSim/convDen*100):0},
   ];
   document.getElementById("funil-list").innerHTML = etapas.map(function(e){
-    var p = pct(e[1](data), n);
-    var col = p>=80?"var(--blue)":p>=50?"var(--warn)":"var(--bad)";
-    return "<div class=\"funil-row\"><span class=\"funil-label\">"+e[0]+"</span><div class=\"funil-track\"><div class=\"funil-fill\" style=\"width:"+p+"%;background:"+col+"\"><span class=\"funil-pct\">"+p+"%</span></div></div></div>";
+    var col = e.p>=80?"var(--blue)":e.p>=50?"var(--warn)":"var(--bad)";
+    return "<div class=\"funil-row\"><span class=\"funil-label\">"+e.label+"</span><div class=\"funil-track\"><div class=\"funil-fill\" style=\"width:"+e.p+"%;background:"+col+"\"><span class=\"funil-pct\">"+e.p+"%</span></div></div></div>";
   }).join("");
 
   // Calcula aderência de um bloco: campos vazios excluídos do denominador por conversa
