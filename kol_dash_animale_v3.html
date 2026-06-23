@@ -97,7 +97,22 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .obj-tbl th{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;padding:4px 6px;border-bottom:1px solid var(--border);text-align:left}
 .obj-tbl th:not(:first-child){text-align:right}.obj-tbl td{padding:7px 6px;font-size:12px;border-bottom:1px solid rgba(255,255,255,.03)}
 .obj-tbl td:not(:first-child){text-align:right}
-.obj-wrap{overflow-y:auto;max-height:180px}</style>
+.obj-wrap{overflow-y:auto;max-height:180px}
+.dest-group{border-bottom:1px solid rgba(255,255,255,.06)}
+.dest-group:last-child{border-bottom:none}
+.dest-group-header{display:flex;align-items:center;gap:8px;padding:8px 4px;cursor:pointer;justify-content:space-between}
+.dest-group-header:hover{background:rgba(255,255,255,.03);border-radius:6px}
+.dest-group-left{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.dest-group-arrow{font-size:10px;color:var(--text-dim);transition:transform .15s;flex-shrink:0}
+.dest-group-arrow.open{transform:rotate(90deg)}
+.dest-group-title{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dest-group-badge{font-size:11px;font-weight:700;flex-shrink:0}
+.dest-group-type{font-size:10px;font-weight:700;flex-shrink:0;padding:2px 6px;border-radius:4px}
+.dest-convs{display:none;padding:0 4px 8px 24px}
+.dest-convs.open{display:block}
+.dest-conv-row{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;margin-bottom:3px;background:rgba(255,255,255,.03);border-radius:5px;text-decoration:none;color:var(--text-muted);font-size:11px}
+.dest-conv-row:hover{background:rgba(255,255,255,.07);color:var(--text)}
+</style>
 </head>
 <body>
 <div id="loading"><div class="spinner"></div><p>Carregando dados...</p><p id="error-msg"></p></div>
@@ -134,7 +149,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <div class="card"><div class="card-title">Métricas da Conversa</div><div class="metrics-grid"><div><div class="metric-label">Tempo Médio</div><div class="metric-val" id="m-tempo">—</div></div><div><div class="metric-label">Total Conversas</div><div class="metric-val" id="m-total">—</div></div></div><div class="fala-label">Fala: Vendedor × Cliente</div><div class="fala-bar"><div class="v" id="fala-v" style="width:50%"></div><div class="c" id="fala-c" style="width:50%"></div></div><div class="fala-legend"><span><span class="dot" style="background:var(--blue)"></span>Vendedor <span id="fala-vp">—</span></span><span><span class="dot" style="background:var(--cyan)"></span>Cliente <span id="fala-cp">—</span></span></div></div>
   </div>
   <div class="row3">
-    <div class="card"><div class="card-title">Destaques da Conversa</div><div class="card-sub">Trechos identificados automaticamente</div><div class="dest-wrap" id="dest-list"><p style="color:var(--text-dim);font-size:12px;padding:8px 0">Destaques disponíveis no dashboard KOL</p></div></div>
+    <div class="card"><div class="card-title">Destaques da Conversa</div><div class="card-sub">Padrões mais frequentes — clique para expandir</div><div class="dest-wrap" id="dest-list"></div></div>
     <div class="card" style="overflow:visible"><div class="card-title">Aderência ao Playbook por Bloco</div><div class="card-sub">Aderência média do time em cada bloco</div><div class="blocos-arc" id="blocos-arc"></div><div style="text-align:center;margin-top:10px;font-size:10px;color:var(--text-dim)">% de aderência média em cada bloco do playbook</div></div>
     <div class="card"><div class="card-title">Funil do Atendimento</div><div class="card-sub">% de conversas que chegam até cada etapa</div><div class="funil-list" id="funil-list"></div></div>
   </div>
@@ -163,6 +178,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 <script>
 
 const GSHEET_CSV = "https://docs.google.com/spreadsheets/d/1_B39tmwDH6p4KS29qI4xxfbKzDLyIVNW2qACIzmrwtA/gviz/tq?tqx=out:csv&sheet=conversas";
+const GSHEET_DEST = "https://docs.google.com/spreadsheets/d/1_B39tmwDH6p4KS29qI4xxfbKzDLyIVNW2qACIzmrwtA/gviz/tq?tqx=out:csv&sheet=destaques";
 const DE_PARA = {produto:{},motivo_visita:{},objecao:{}};
 
 function dp(val, campo) {
@@ -253,7 +269,7 @@ function renderHBars(id, data, color) {
   }).join("");
 }
 
-var ALL_DATA = [], FILTERED = [];
+var ALL_DATA = [], FILTERED = [], ALL_DEST = [];
 var filters = {lojas: [], vendedores: [], conv: "todas", dateFrom: "", dateTo: ""};
 
 function applyFilters() {
@@ -299,6 +315,17 @@ function setView(v) {
   document.getElementById("btn-at").classList.toggle("active", v === "at");
   document.getElementById("btn-cl").classList.toggle("active", v === "cl");
   if (v === "cl") renderClienteView(FILTERED);
+  var filtDest = ALL_DEST.filter(function(d) {
+    if (filters.lojas.length && filters.lojas.indexOf(d.loja) === -1) return false;
+    if (filters.vendedores.length && filters.vendedores.indexOf(d.vendedor) === -1) return false;
+    if (filters.dateFrom || filters.dateTo) {
+      var rd = parseDate(d.data_hora);
+      if (filters.dateFrom && rd < new Date(filters.dateFrom)) return false;
+      if (filters.dateTo  && rd > new Date(filters.dateTo + "T23:59:59")) return false;
+    }
+    return true;
+  });
+  renderDestaques(filtDest);
 }
 
 function toggleDD(id, e) {
@@ -357,6 +384,63 @@ function sortTable(tblId, col) {
     }
     tbody.appendChild(r);
   });
+}
+
+function renderDestaques(filtDest) {
+  var el = document.getElementById("dest-list");
+  if (!el) return;
+  if (!filtDest || filtDest.length === 0) {
+    el.innerHTML = "<p style=\"color:var(--text-dim);font-size:12px;padding:8px 0\">Nenhum destaque disponível</p>";
+    return;
+  }
+  var counts = {};
+  filtDest.forEach(function(d) {
+    var type = (d.type || "").trim(), title = (d.title || "").trim();
+    if (!title) return;
+    var key = type + "|||" + title;
+    if (!counts[key]) counts[key] = {type:type, title:title, n:0, convs:[]};
+    counts[key].n++;
+    counts[key].convs.push(d);
+  });
+  var sorted = Object.values(counts).sort(function(a,b){return b.n-a.n;});
+  var typeIcon  = {boa_pratica:"✅", atencao:"⚠️", oportunidade_perdida:"🔴"};
+  var typeLabel = {boa_pratica:"BOA PRÁTICA", atencao:"ATENÇÃO", oportunidade_perdida:"OPP. PERDIDA"};
+  var typeBg    = {boa_pratica:"rgba(34,197,94,.15)", atencao:"rgba(245,158,11,.15)", oportunidade_perdida:"rgba(239,68,68,.15)"};
+  var typeColor = {boa_pratica:"var(--green)", atencao:"var(--warn)", oportunidade_perdida:"var(--bad)"};
+  el.innerHTML = sorted.slice(0,20).map(function(d, gi) {
+    var icon  = typeIcon[d.type]  || "📌";
+    var label = typeLabel[d.type] || d.type;
+    var bg    = typeBg[d.type]    || "rgba(74,85,104,.15)";
+    var color = typeColor[d.type] || "var(--text-muted)";
+    var gid   = "dg-" + gi;
+    var convRows = d.convs.map(function(c) {
+      var url = c.url || ("https://main.dq10xtaeebtqn.amplifyapp.com/conversas/" + c.conversa_id + "/");
+      var vend = (c.vendedor || "").length > 22 ? (c.vendedor || "").slice(0,20) + "…" : (c.vendedor || "");
+      var data = (c.data_hora || "").split(",")[0];
+      return "<a class=\"dest-conv-row\" href=\"" + url + "\" target=\"_blank\"><span>" + vend + " · " + data + "</span><span style=\"color:var(--cyan)\">→</span></a>";
+    }).join("");
+    return "<div class=\"dest-group\">" +
+      "<div class=\"dest-group-header\" onclick=\"toggleDestGroup('" + gid + "')\">" +
+        "<div class=\"dest-group-left\">" +
+          "<span>" + icon + "</span>" +
+          "<span class=\"dest-group-title\" title=\"" + d.title + "\">" + d.title + "</span>" +
+        "</div>" +
+        "<span class=\"dest-group-type\" style=\"background:" + bg + ";color:" + color + "\">" + label + "</span>" +
+        "<span class=\"dest-group-badge\" style=\"color:" + color + "\">" + d.n + "x</span>" +
+        "<span class=\"dest-group-arrow\" id=\"arr-" + gid + "\">▶</span>" +
+      "</div>" +
+      "<div class=\"dest-convs\" id=\"" + gid + "\">" + convRows + "</div>" +
+    "</div>";
+  }).join("");
+}
+
+function toggleDestGroup(gid) {
+  var panel = document.getElementById(gid);
+  var arr   = document.getElementById("arr-" + gid);
+  if (!panel) return;
+  var open = panel.classList.contains("open");
+  panel.classList.toggle("open", !open);
+  if (arr) arr.classList.toggle("open", !open);
 }
 
 function renderAll() {
@@ -644,6 +728,11 @@ async function loadData() {
     var rows = parseCSV(text);
     ALL_DATA = rowsToObjects(rows);
     if (ALL_DATA.length === 0) throw new Error("Nenhum dado encontrado");
+    try {
+      var destRes = await fetch(GSHEET_DEST);
+      var destText = await destRes.text();
+      ALL_DEST = rowsToObjects(parseCSV(destText));
+    } catch(e2) { ALL_DEST = []; }
     var dates = ALL_DATA.map(function(r){return parseDate(r.data_hora);}).filter(function(d){return d>new Date(0);});
     if (dates.length) {
       var mn = new Date(Math.min.apply(null,dates)), mx = new Date(Math.max.apply(null,dates));
