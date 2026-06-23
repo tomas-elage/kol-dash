@@ -371,8 +371,17 @@ function renderAll() {
   document.getElementById("kpi-tempo").textContent = aM + "m " + aS + "s";
   document.getElementById("m-tempo").textContent = aM + "m " + aS + "s";
   document.getElementById("m-total").textContent = n;
-  var adrs = data.map(function(r){return parseFloat((r["Aderência ao playbook (%)"]||'').toString().replace('%',''));}).filter(function(x){return !isNaN(x);});
-  document.getElementById("kpi-ader").textContent = Math.round(avg(adrs)) + "%";
+  // KPI aderência = média dos 5 blocos (calculado inline)
+  var _bCampos = [
+    ['abordagem','Tipo de abordagem','Vendedor se apresentou pelo nome?','Perguntou o nome do cliente?','Ofereceu café e/ou água?'],
+    ['Fez sondagem para entender a necessidade?','Quantas perguntas exploratórias feitas?'],
+    ['Demonstrou o produto?','Demonstrou alternativas à objeção?','Tentou upsell?','Tentou cross sell?'],
+    ['Cordialidade','Nível de engajamento do vendedor','Você considera o comportamento do vendedor adequado?'],
+    ['Como foi o encerramento do vendedor?','Vendedor convidou o cliente a retornar?','Vendedor falou do programa de fidelização?']
+  ];
+  var _blocoScores = _bCampos.map(function(campos) { return blocoAder(data, campos); }).filter(function(x){return x!==null;});
+  var kpiAder = _blocoScores.length ? Math.round(_blocoScores.reduce(function(a,b){return a+b;},0)/_blocoScores.length) : 0;
+  document.getElementById("kpi-ader").textContent = kpiAder + "%";
   var vF = data.map(function(r){return parseInt(r["Quantas falas o vendedor falou?"])||0;}),
       cF = data.map(function(r){return parseInt(r["Quantas falas o cliente falou?"])||0;});
   var tV = vF.reduce(function(a,b){return a+b;},0), tC = cF.reduce(function(a,b){return a+b;},0), tT = tV+tC||1;
@@ -412,7 +421,7 @@ function renderAll() {
     var nm = e[0].length>18?e[0].slice(0,16)+'…':e[0];
     return {nm:nm, nmFull:e[0], cp:cp, ad:ad!==null?ad:0, t:e[1].total};
   }).sort(function(a,b){return b.ad-a.ad;}).map(function(r,i){
-    return "<tr><td style=\"color:var(--text-dim);font-size:11px\">"+(i+1)+"º</td><td title=\""+r.nmFull+"\">"+r.nm+"</td><td class=\"num\">"+r.t+"</td><td class=\"num\">"+r.ad+"%</td><td class=\"good\">"+r.cp+"%</td></tr>";
+    return "<tr><td style=\"color:var(--text-dim);font-size:11px\">"+(i+1)+"º</td><td title=\""+r.nmFull+"\" style=\"white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis\">"+r.nm+"</td><td class=\"num\">"+r.t+"</td><td class=\"num\">"+r.ad+"%</td><td class=\"good\">"+r.cp+"%</td></tr>";
   }).join("");
 
   var byL = {};
@@ -431,7 +440,7 @@ function renderAll() {
     var nm = e[0].length>18?e[0].slice(0,16)+'…':e[0];
     return {nm:nm, nmFull:e[0], cp:cp, ad:ad!==null?ad:0, t:e[1].total};
   }).sort(function(a,b){return b.ad-a.ad;}).map(function(r,i){
-    return "<tr><td style=\"color:var(--text-dim);font-size:11px\">"+(i+1)+"º</td><td title=\""+r.nmFull+"\">"+r.nm+"</td><td class=\"num\">"+r.t+"</td><td class=\"num\">"+r.ad+"%</td><td class=\"good\">"+r.cp+"%</td></tr>";
+    return "<tr><td style=\"color:var(--text-dim);font-size:11px\">"+(i+1)+"º</td><td title=\""+r.nmFull+"\" style=\"white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis\">"+r.nm+"</td><td class=\"num\">"+r.t+"</td><td class=\"num\">"+r.ad+"%</td><td class=\"good\">"+r.cp+"%</td></tr>";
   }).join("");
 
   var indsCfg = [
@@ -494,31 +503,28 @@ function renderAll() {
     return "<div class=\"funil-row\"><span class=\"funil-label\">"+e.label+"</span><div class=\"funil-track\"><div class=\"funil-fill\" style=\"width:"+e.p+"%;background:"+col+"\"><span class=\"funil-pct\">"+e.p+"%</span></div></div></div>";
   }).join("");
 
-  // Calcula aderência de um bloco: campos vazios excluídos do denominador por conversa
-  // Se bloco inteiro vazio em todas as conversas → retorna null
+    // Calcula taxa de cada campo separadamente, depois média das taxas
+  // Igual à planilha: cada campo tem seu próprio denominador (sim+não)
+  function campoPct(data, campo) {
+    if (campo === '_sempre1') return 1.0; // abordagem sempre 100%
+    var sim=0, tot=0;
+    data.forEach(function(r) {
+      var v = (r[campo] || '').toString().trim();
+      if (!v || v.toLowerCase() === 'não aplicável') return;
+      tot++;
+      if (campo === 'Tipo de abordagem') { if (isProativa(v)) sim++; }
+      else if (campo === 'Cordialidade' || campo === 'Nível de engajamento do vendedor') { if (isAltoMedio(v)) sim++; }
+      else if (campo === 'Quantas perguntas exploratórias feitas?') { if (parseFloat(v) >= 1) sim++; }
+      else if (campo === 'Como foi o encerramento do vendedor?') { if (isCordial(v)) sim++; }
+      else { if (isSim(v)) sim++; }
+    });
+    return tot === 0 ? null : sim / tot;
+  }
+
   function blocoAder(data, campos) {
-    var scores = data.map(function(r) {
-      var sim = 0, tot = 0;
-      campos.forEach(function(c) {
-        // _sempre1: abordagem é sempre verdadeira (só capturamos conversas com abordagem)
-        if (c === '_sempre1') { sim++; tot++; return; }
-        var v = (r[c] || '').toString().trim();
-        if (v === '') return; // vazio = não aplicável, exclui
-        tot++;
-        if (c === "Tipo de abordagem") {
-          if (isProativa(v)) sim++;
-        } else if (c === "Cordialidade" || c === "Nível de engajamento do vendedor") {
-          if (isAltoMedio(v)) sim++;
-        } else if (c === "Quantas perguntas exploratórias feitas?") {
-          if (parseFloat(v) >= 1) sim++;
-        } else {
-          if (isSim(v)) sim++;
-        }
-      });
-      return tot === 0 ? null : sim / tot;
-    }).filter(function(x) { return x !== null; });
-    if (scores.length === 0) return null;
-    return Math.round(scores.reduce(function(a,b){return a+b;},0) / scores.length * 100);
+    var taxas = campos.map(function(c) { return campoPct(data, c); }).filter(function(x) { return x !== null; });
+    if (taxas.length === 0) return null;
+    return taxas.reduce(function(a,b){return a+b;},0) / taxas.length * 100;
   }
 
   // Define campos + labels para cada bloco (usado no cálculo e no tooltip)
@@ -554,10 +560,10 @@ function renderAll() {
 
   var blocos = blocosDef.map(function(b) {
     var fs2 = b.campos.map(function(c){return c.f;});
-    var p = blocoAder(data, fs2);
+    var pRaw = blocoAder(data, fs2); var p = pRaw !== null ? Math.round(pRaw) : null;
     // Calcula % individual de cada campo (mesma lógica do bloco)
     var breakdown = b.campos.map(function(c) {
-      var p2 = blocoAder(data, [c.f]);
+      var p2Raw = blocoAder(data, [c.f]); var p2 = p2Raw !== null ? Math.round(p2Raw) : null;
       return {lbl: c.lbl, p: p2};
     }).filter(function(x){return x.p !== null;});
     return {icon:b.icon, name:b.name, p:p, breakdown:breakdown};
