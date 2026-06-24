@@ -85,6 +85,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .funil-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px}
 .funil-pct{font-size:12px;font-weight:700;color:#fff}
 .donut-row{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:4px}
+#chartUso,#chartEsp{max-width:120px!important;max-height:120px!important}
 .donut-legend{display:flex;flex-direction:column;gap:3px;width:100%}
 .dl{display:flex;align-items:center;gap:5px;font-size:12px}.dl .swatch{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .dl .lbl{flex:1;color:var(--text-muted)}.dl .val{font-weight:600}
@@ -156,20 +157,20 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 </div>
 <div id="view-cl" style="display:none">
   <div class="row5" style="margin-bottom:12px">
-    <div class="card"><div class="card-title">Perfil Comportamental</div><div class="donut-row"><canvas id="chartPerfil" width="100" height="100"></canvas><div class="donut-legend" id="leg-perfil"></div></div></div>
-    <div class="card"><div class="card-title">Perfil que Mais Converte</div><div id="perfil-converte" style="margin-top:8px"></div></div>
-    <div class="card"><div class="card-title">Sentimento dos Clientes</div><div id="sentimento-bars" style="margin-top:8px"></div></div>
-    <div class="card"><div class="card-title">Para Uso Próprio?</div><div class="donut-row"><canvas id="chartUso" width="100" height="100"></canvas><div class="donut-legend" id="leg-uso"></div></div></div>
-    <div class="card"><div class="card-title">Procurou Algo Específico?</div><div class="donut-row"><canvas id="chartEsp" width="100" height="100"></canvas><div class="donut-legend" id="leg-esp"></div></div></div>
+    <div class="card" style="min-height:200px;display:flex;flex-direction:column"><div class="card-title">Perfil Comportamental</div><div class="donut-row" style="flex:1;justify-content:center;align-items:center"><canvas id="chartPerfil" width="70" height="70"></canvas><div class="donut-legend" id="leg-perfil"></div></div></div>
+    <div class="card" style="min-height:200px;display:flex;flex-direction:column"><div class="card-title">Perfil que Mais Converte</div><div id="perfil-converte" style="flex:1;display:flex;align-items:center;justify-content:center"></div></div>
+    <div class="card" style="min-height:200px"><div class="card-title">Sentimento dos Clientes</div><div id="sentimento-bars" style="margin-top:12px"></div></div>
+    <div class="card"><div class="card-title">Para Uso Próprio?</div><div class="donut-row" style="align-items:center;max-width:200px;margin:0 auto"><canvas id="chartUso" width="70" height="70"></canvas><div class="donut-legend" id="leg-uso"></div></div></div>
+    <div class="card"><div class="card-title">Procurou Algo Específico?</div><div class="donut-row" style="align-items:center;max-width:200px;margin:0 auto"><canvas id="chartEsp" width="70" height="70"></canvas><div class="donut-legend" id="leg-esp"></div></div></div>
   </div>
   <div class="row4b" style="margin-bottom:12px">
     <div class="card"><div class="card-title">Motivo da Visita</div><div class="hbar-list" id="hbar-motivo" style="margin-top:8px"></div></div>
     <div class="card"><div class="card-title">O que o Cliente Procurou?</div><div class="hbar-list" id="hbar-produto" style="margin-top:8px"></div></div>
-    <div class="card"><div class="card-title">Combinações de Compra</div><div class="hbar-list" id="hbar-combo" style="margin-top:8px"></div></div>
-    <div class="card"><div class="card-title">Qtd. de Itens Comprados</div><div class="donut-row"><canvas id="chartItens" width="100" height="100"></canvas><div class="donut-legend" id="leg-itens"></div></div></div>
+    <div class="card" style="min-height:200px;display:flex;flex-direction:column"><div class="card-title">Combinações de Compra</div><div class="hbar-list" id="hbar-combo" style="flex:1;display:flex;align-items:center;justify-content:center"></div></div>
+    <div class="card" style="min-height:200px;display:flex;flex-direction:column"><div class="card-title">Qtd. de Itens Comprados</div><div class="donut-row" style="flex:1;justify-content:center;align-items:center"><canvas id="chartItens" width="70" height="70"></canvas><div class="donut-legend" id="leg-itens"></div></div></div>
   </div>
   <div class="row3b">
-    <div class="card"><div class="card-title">Objeções Levantadas</div><div class="obj-wrap" style="margin-top:8px"><table class="obj-tbl"><thead><tr><th>Objeção</th><th>Freq.</th><th>Conv.</th></tr></thead><tbody id="tbl-obj-body"></tbody></table></div></div>
+    <div class="card"><div class="card-title">Objeções Levantadas</div><div class="obj-wrap" style="margin-top:8px"><table class="obj-tbl"><thead><tr><th>Objeção</th><th>#</th><th>% total</th></tr></thead><tbody id="tbl-obj-body"></tbody></table></div></div>
     <div class="card"><div class="card-title">Principais Motivos de Perda</div><div class="hbar-list" id="hbar-perda" style="margin-top:8px"></div></div>
     <div class="card"><div class="card-title">Concorrência na Conversa</div><div class="card-sub" id="conc-sub"></div><div class="hbar-list" id="hbar-conc"></div></div>
   </div>
@@ -669,7 +670,7 @@ function updateDonut(cid, lid, vals, colors, labels, total) {
     donutCharts[cid] = new Chart(document.getElementById(cid), {
       type: "doughnut",
       data: {datasets: [{data: vals, backgroundColor: colors, borderWidth: 0, hoverOffset: 3}]},
-      options: {cutout: "68%", plugins: {legend: {display: false}, tooltip: {enabled: false}}, animation: {duration: 400}}
+      options: {cutout: "45%", plugins: {legend: {display: false}, tooltip: {enabled: false}}, animation: {duration: 400}}
     });
   }
   var n = total || 1;
@@ -680,41 +681,114 @@ function updateDonut(cid, lid, vals, colors, labels, total) {
 
 function renderClienteView(data) {
   var n = data.length || 1;
-  var perfis = {"Básico":0,"Roteiro":0,"Consultivo":0};
-  data.forEach(function(r){ if(r["Como o vendedor se portou?"]) perfis[r["Como o vendedor se portou?"]] = (perfis[r["Como o vendedor se portou?"]]||0)+1; });
-  updateDonut("chartPerfil","leg-perfil",[perfis["Consultivo"]||0,perfis["Roteiro"]||0,perfis["Básico"]||0],["#06b6d4","#3b82f6","#f59e0b"],["Consultivo","Roteiro","Básico"],n);
-  var pc = {};
-  data.forEach(function(r){ var p=r["Como o vendedor se portou?"]; if(!p)return; if(!pc[p])pc[p]={conv:0,total:0}; pc[p].total++; if(isSim(r["Conversa convertida em venda?"]))pc[p].conv++; });
-  document.getElementById("perfil-converte").innerHTML = Object.entries(pc).map(function(e){
-    var p2=pct(e[1].conv,e[1].total);
-    return "<div class=\"hbar-row\"><span class=\"hbar-lbl\">"+e[0]+"</span><div class=\"hbar-track\"><div class=\"hbar-fill\" style=\"width:"+p2+"%\"></div></div><span class=\"hbar-val\">"+p2+"%</span></div>";
-  }).join("");
+
+  // Perfil Comportamental — aguardando perfil_cliente via Supabase
+  document.getElementById("leg-perfil").innerHTML = "";
+  document.getElementById("chartPerfil").style.display = "none";
+  document.getElementById("chartPerfil").closest(".card").querySelector(".donut-row").innerHTML = "<p style='color:var(--text-dim);font-size:14px;text-align:center;padding:60px 0;width:100%'>Em breve</p>";
+
+  // Perfil que Mais Converte — aguardando perfil_cliente via Supabase
+  document.getElementById("perfil-converte").innerHTML = "<p style='color:var(--text-dim);font-size:16px;font-weight:500;text-align:center'>Em breve</p>";
+
+  // Sentimento — normaliza case (api retorna lowercase)
+  var scMap = {"encantado":"Encantado","valorizado":"Valorizado","neutro":"Neutro","frustrado":"Frustrado"};
+  var scol  = {"Encantado":"#22c55e","Valorizado":"#3b82f6","Neutro":"#6b7280","Frustrado":"#ef4444"};
   var sc = {"Encantado":0,"Valorizado":0,"Neutro":0,"Frustrado":0};
-  data.forEach(function(r){ if(r["Como você acha que o cliente saiu da loja?"]) sc[r["Como você acha que o cliente saiu da loja?"]]=(sc[r["Como você acha que o cliente saiu da loja?"]]||0)+1; });
-  var scol = {"Encantado":"#22c55e","Valorizado":"#3b82f6","Neutro":"#6b7280","Frustrado":"#ef4444"};
+  data.forEach(function(r){
+    var raw = (r["Como você acha que o cliente saiu da loja?"]||"").trim().toLowerCase();
+    var k = scMap[raw];
+    if (k) sc[k]++;
+  });
   document.getElementById("sentimento-bars").innerHTML = Object.entries(sc).map(function(e){
-    return "<div class=\"hbar-row\"><span class=\"hbar-lbl\">"+e[0]+"</span><div class=\"hbar-track\"><div class=\"hbar-fill\" style=\"width:"+pct(e[1],n)+"%;background:"+scol[e[0]]+"\"></div></div></div>";
+    return "<div style='display:flex;align-items:center;gap:8px;margin-bottom:10px'><span style='font-size:13px;color:var(--text);min-width:80px'>"+e[0]+"</span><div style='flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden'><div style='height:100%;width:"+pct(e[1],n)+"%;background:"+scol[e[0]]+";border-radius:4px'></div></div><span style='font-size:13px;color:var(--text-muted);min-width:24px;text-align:right'>"+e[1]+"</span></div>";
   }).join("");
-  var uso = {"Sim":0,"Não":0,"":0};
-  data.forEach(function(r){ var k=r["Para uso próprio?"]||""; uso[k]=(uso[k]||0)+1; });
-  updateDonut("chartUso","leg-uso",[uso["Sim"]||0,uso["Não"]||0,uso[""]||0],["#22c55e","#f59e0b","#4a5568"],["Uso próprio","Não (presente)","Não identificado"],n);
-  var espSim = data.filter(function(r){return r["Produto procurado"]&&r["Produto procurado"].trim();}).length;
-  updateDonut("chartEsp","leg-esp",[espSim,n-espSim],["#06b6d4","#ef4444"],["Com produto","Sem produto"],n);
-  renderHBars("hbar-motivo", countBy(data,"motivo_visita","motivo_visita"), "var(--blue)");
-  renderHBars("hbar-produto", countBy(data,"produto","produto"), "var(--blue)");
-  document.getElementById("hbar-combo").innerHTML = "<p style=\"color:var(--text-dim);font-size:11px;padding:4px 0\">Disponível no dashboard KOL</p>";
-  updateDonut("chartItens","leg-itens",[data.filter(function(r){return isSim(r["Conversa convertida em venda?"]);}).length,data.filter(function(r){return r["Conversa convertida em venda?"]!=="sim";}).length],["#06b6d4","#4a5568"],["Converteu","Não converteu"],n);
+
+  // Para uso próprio — coluna "Para uso próprio?" (sim/não/"")
+  var uso = {"sim":0,"nao":0,"nd":0};
+  data.forEach(function(r){
+    var k = (r["Para uso próprio?"]||"").trim().toLowerCase();
+    if (k === "sim") uso["sim"]++;
+    else if (k === "não" || k === "nao") uso["nao"]++;
+    else uso["nd"]++;
+  });
+  updateDonut("chartUso","leg-uso",[uso["sim"],uso["nao"],uso["nd"]],["#22c55e","#f59e0b","#4a5568"],["Uso próprio","Presente","Não identificado"],n);
+
+  // Procurou algo específico — coluna "Produto procurado", ignora desconsiderável
+  var IGNORAR_ESP = ["desconsiderar","não aplicável","nao aplicavel"];
+  var espSim = data.filter(function(r){
+    var v = (r["Produto procurado"]||"").trim().toLowerCase();
+    return v.length > 0 && IGNORAR_ESP.indexOf(v) === -1;
+  }).length;
+  updateDonut("chartEsp","leg-esp",[espSim,n-espSim],["#06b6d4","#4a5568"],["Com produto específico","Sem produto específico"],n);
+
+  // Motivo da visita — coluna "Motivo da visita?" com DE-PARA motivo_visita (sem N/A)
+  var IGNORAR_MOTIVO = ["não aplicável","nao aplicavel","não se aplica","nao se aplica","desconsiderar",""];
+  var motivoData = (function(){
+    var c = {};
+    data.forEach(function(r){
+      var v = dp((r["Motivo da visita?"]||"").trim(), "motivo_visita");
+      if (!v || IGNORAR_MOTIVO.indexOf(v.toLowerCase()) !== -1) return;
+      c[v] = (c[v]||0) + 1;
+    });
+    return Object.entries(c).map(function(e){return {label:e[0],val:e[1]};}).sort(function(a,b){return b.val-a.val;});
+  })();
+  renderHBars("hbar-motivo", motivoData, "var(--blue)");
+
+  // O que o cliente procurou — coluna "Produto procurado" com DE-PARA produto (sem N/A)
+  var IGNORAR_PRODUTO = ["não aplicável","nao aplicavel","não se aplica","nao se aplica","desconsiderar",""];
+  var produtoData = (function(){
+    var c = {};
+    data.forEach(function(r){
+      var v = dp((r["Produto procurado"]||"").trim(), "produto");
+      if (!v || IGNORAR_PRODUTO.indexOf(v.toLowerCase()) !== -1) return;
+      c[v] = (c[v]||0) + 1;
+    });
+    return Object.entries(c).map(function(e){return {label:e[0],val:e[1]};}).sort(function(a,b){return b.val-a.val;});
+  })();
+  renderHBars("hbar-produto", produtoData, "var(--blue)");
+
+  // Combinações de compra — aguardando purchased_items via Supabase
+  document.getElementById("hbar-combo").innerHTML = "<p style='color:var(--text-dim);font-size:14px;padding:40px 0;text-align:center;width:100%'>Em breve</p>";
+
+  // Qtd. de Itens Comprados — aguardando purchased_items via Supabase
+  document.getElementById("leg-itens").innerHTML = "";
+  document.getElementById("chartItens").style.display = "none";
+  document.getElementById("chartItens").closest(".card").querySelector(".donut-row").innerHTML = "<p style='color:var(--text-dim);font-size:14px;text-align:center;padding:60px 0;width:100%'>Em breve</p>";
+
+  // Objeções — coluna "Qual foi a objeção?", freq # e % do total
   var oa = {};
-  data.forEach(function(r){ if(!r["Qual foi a objeção?"])return; var k=dp(r["Qual foi a objeção?"],"objecao"); if(!oa[k])oa[k]={freq:0,conv:0}; oa[k].freq++; if(isSim(r["Conversa convertida em venda?"]))oa[k].conv++; });
-  document.getElementById("tbl-obj-body").innerHTML = Object.entries(oa).sort(function(a,b){return b[1].freq-a[1].freq;}).map(function(e){
-    var cp2=pct(e[1].conv,e[1].freq);
-    var st=cp2>=50?"color:var(--green)":cp2>=25?"color:var(--warn)":"color:var(--bad)";
-    return "<tr><td>"+e[0]+"</td><td style=\"text-align:right;color:var(--text-muted)\">"+e[1].freq+"</td><td style=\"text-align:right;font-weight:600;"+st+"\">"+cp2+"%</td></tr>";
-  }).join("");
-  renderHBars("hbar-perda", countBy(data,"motivo_perda"), "var(--bad)");
-  var concCount = data.filter(function(r){return r["Mencionou algum concorrente?"]==="sim";}).length;
+  data.forEach(function(r){
+    var raw = (r["Qual foi a objeção?"]||"").trim();
+    if (!raw) return;
+    raw.split(";").forEach(function(s){
+      var k = dp(s.trim(),"objecao");
+      if (!k) return;
+      oa[k] = (oa[k]||0) + 1;
+    });
+  });
+  document.getElementById("tbl-obj-body").innerHTML = Object.entries(oa)
+    .sort(function(a,b){ return b[1]-a[1]; })
+    .map(function(e){
+      return "<tr><td>"+e[0]+"</td><td style='text-align:right;color:var(--text-muted)'>"+e[1]+"</td><td style='text-align:right;color:var(--text-muted)'>"+pct(e[1],n)+"%</td></tr>";
+    }).join("");
+
+  // Motivos de perda — coluna "Qual foi o motivo da não conversão?"
+  renderHBars("hbar-perda", countBy(data,"Qual foi o motivo da não conversão?","motivo_perda"), "var(--bad)");
+
+  // Concorrência — coluna "Qual foi o concorrente mencionado?" separada por ";"
+  var concData = {};
+  var concCount = 0;
+  data.forEach(function(r){
+    var raw = (r["Qual foi o concorrente mencionado?"]||"").trim();
+    if (!raw) return;
+    concCount++;
+    raw.split(";").forEach(function(s){
+      var k = s.trim();
+      if (k) concData[k] = (concData[k]||0) + 1;
+    });
+  });
   document.getElementById("conc-sub").textContent = pct(concCount,n)+"% mencionaram concorrentes";
-  renderHBars("hbar-conc", countBy(data,"concorrentes"), "var(--orange)");
+  renderHBars("hbar-conc", Object.entries(concData).map(function(e){return {label:e[0],val:e[1]};}).sort(function(a,b){return b.val-a.val;}), "var(--orange)");
 }
 
 async function loadData() {
