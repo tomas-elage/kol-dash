@@ -171,7 +171,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   </div>
   <div class="row3b">
     <div class="card"><div class="card-title">Objeções Levantadas</div><div class="obj-wrap" style="margin-top:8px"><table class="obj-tbl"><thead><tr><th>Objeção</th><th>#</th><th>% total</th></tr></thead><tbody id="tbl-obj-body"></tbody></table></div></div>
-    <div class="card"><div class="card-title">Principais Motivos de Perda</div><div class="hbar-list" id="hbar-perda" style="margin-top:8px"></div></div>
+    <div class="card" style="min-height:200px;display:flex;flex-direction:column"><div class="card-title">Principais Motivos de Perda</div><div class="hbar-list" id="hbar-perda" style="flex:1;display:flex;align-items:center;justify-content:center"></div></div>
     <div class="card"><div class="card-title">Concorrência na Conversa</div><div class="card-sub" id="conc-sub"></div><div class="hbar-list" id="hbar-conc"></div></div>
   </div>
 </div>
@@ -773,7 +773,7 @@ function renderClienteView(data) {
     }).join("");
 
   // Motivos de perda — coluna "Qual foi o motivo da não conversão?"
-  renderHBars("hbar-perda", countBy(data,"Qual foi o motivo da não conversão?","motivo_perda"), "var(--bad)");
+  document.getElementById("hbar-perda").innerHTML = "<p style='color:var(--text-dim);font-size:16px;font-weight:500;text-align:center'>Em breve</p>";
 
   // Concorrência — coluna "Qual foi o concorrente mencionado?" separada por ";"
   var concData = {};
