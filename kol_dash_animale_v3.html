@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KOL | Animale</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <style>:root{--bg:#0d1117;--bg-card:#161b22;--border:#2a3444;--text:#e6edf3;--text-muted:#7d8fa3;--text-dim:#4a5568;--blue:#3b82f6;--cyan:#06b6d4;--green:#22c55e;--warn:#f59e0b;--bad:#ef4444;--orange:#fb923c;}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:13px}
@@ -167,12 +168,15 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <div class="card"><div class="card-title">Motivo da Visita</div><div class="hbar-list" id="hbar-motivo" style="margin-top:8px"></div></div>
     <div class="card"><div class="card-title">O que o Cliente Procurou?</div><div class="hbar-list" id="hbar-produto" style="margin-top:8px"></div></div>
     <div class="card" style="min-height:200px"><div class="card-title">Combinações de Compra</div><div class="hbar-list" id="hbar-combo" style="margin-top:8px"></div></div>
-    <div class="card" style="min-height:200px;display:flex;flex-direction:column"><div class="card-title">Qtd. de Itens Comprados</div><div class="donut-row" style="flex:1;justify-content:center;align-items:center"><canvas id="chartItens" width="70" height="70"></canvas><div class="donut-legend" id="leg-itens"></div></div></div>
+    <div class="card" style="min-height:200px"><div class="card-title">Qtd. de Itens Comprados</div><div class="hbar-list" id="hbar-itens" style="margin-top:8px"></div></div>
   </div>
   <div class="row3b">
     <div class="card"><div class="card-title">Objeções Levantadas</div><div class="obj-wrap" style="margin-top:8px"><table class="obj-tbl"><thead><tr><th>Objeção</th><th>#</th><th>% total</th></tr></thead><tbody id="tbl-obj-body"></tbody></table></div></div>
     <div class="card" style="min-height:200px"><div class="card-title">Principais Motivos de Perda</div><div class="hbar-list" id="hbar-perda" style="margin-top:8px"></div></div>
     <div class="card"><div class="card-title">Concorrência na Conversa</div><div class="card-sub" id="conc-sub"></div><div class="hbar-list" id="hbar-conc"></div></div>
+  </div>
+  <div style="margin-top:12px">
+    <div class="card" style="overflow:hidden;padding:12px 0 0 0"><div style="padding:0 14px 6px"><div class="card-title">Fluxo de Atendimento</div><div class="card-sub">Da entrada na conversa ao resultado final</div></div><div id="sk"></div></div>
   </div>
 </div>
 </div></div>
@@ -296,6 +300,10 @@ function applyFilters() {
   var fmt = function(d) { return d ? new Date(d).toLocaleDateString("pt-BR", {day:"2-digit", month:"short"}) : "—"; };
   document.getElementById("date-label").textContent = (d1 || d2) ? fmt(d1) + " – " + fmt(d2) : "Todas as datas";
   renderAll();
+  if (document.getElementById("view-cl").style.display !== "none") {
+    renderClienteView(FILTERED);
+    setTimeout(renderSankey, 100);
+  }
 }
 
 function clearFilters() {
@@ -316,7 +324,7 @@ function setView(v) {
   document.getElementById("view-cl").style.display = v === "cl" ? "" : "none";
   document.getElementById("btn-at").classList.toggle("active", v === "at");
   document.getElementById("btn-cl").classList.toggle("active", v === "cl");
-  if (v === "cl") renderClienteView(FILTERED);
+  if (v === "cl") { renderClienteView(FILTERED); setTimeout(renderSankey, 100); }
   var _snap = new Set(FILTERED.map(function(r){return r.conversa_id || r["conversa_id"];}));
   var _fd = ALL_DEST.filter(function(d){return _snap.has(d.conversa_id);});
   setTimeout(function(){renderDestaques(_fd);},0);
@@ -822,7 +830,6 @@ function renderClienteView(data) {
 
   // Qtd. de Itens Comprados — barras horizontais
   (function(){
-    var convIds = new Set(data.map(function(r){return r["conversa_id"];}));
     var qtdMap = {};
     data.forEach(function(r){ qtdMap[r["conversa_id"]] = parseInt(r["qtd_itens_comprados"]||"0")||0; });
     var buckets = {"1 item":0,"2 itens":0,"3+ itens":0};
@@ -830,13 +837,8 @@ function renderClienteView(data) {
       if (q===1) buckets["1 item"]++;
       else if (q===2) buckets["2 itens"]++;
       else if (q>=3) buckets["3+ itens"]++;
-      // 0 itens = não converteu, não mostra
     });
     var itensData = Object.entries(buckets).map(function(e){return {label:e[0],val:e[1]};});
-    // Remove canvas e substitui por barras
-    var card = document.getElementById("chartItens").closest(".card");
-    var donutRow = card.querySelector(".donut-row");
-    donutRow.innerHTML = "<div class='hbar-list' style='width:100%;padding:8px 0' id='hbar-itens'></div>";
     renderHBars("hbar-itens", itensData, "var(--cyan)");
   })();
 
@@ -933,6 +935,271 @@ async function loadData() {
     console.error(err);
   }
 }
+// ── Sankey ────────────────────────────────────────────────────────────────
+function renderSankey() {
+  var el = document.getElementById('sk');
+  if (!el) return;
+  if (typeof d3 === 'undefined') { setTimeout(renderSankey, 200); return; }
+  el.innerHTML = '';
+  var W=1000,H=280,NW=10,NP=6;
+  var GREEN='#1baf7a',RED='#E24B4A',GRAY='#888780';
+  var isDark=matchMedia('(prefers-color-scheme: dark)').matches;
+  var textCol=isDark?'#c3c2b7':'#52514e';
+
+  // ── Calcula dados dinamicamente a partir de FILTERED ─────────────────────
+  var data = FILTERED;
+  var total = data.length;
+  if (total === 0) return;
+
+  // Motivos — agrupa usando DE-PARA motivo_visita
+  var IGNORAR = ['não aplicável','nao aplicavel','não se aplica','nao se aplica','desconsiderar',''];
+  var motivoMap = {'troca':0,'presente':0,'compra_propria':0,'ni':0};
+  var motivoLabel = {'troca':'Troca','presente':'Presente','compra_propria':'Compra própria','ni':'Não identificado'};
+  var motivoColor = {'troca':RED,'presente':GREEN,'compra_propria':GREEN,'ni':GRAY};
+
+  // Submotivos de compra própria (motivo_visita mais detalhado)
+  var subMotivos = {};
+
+  // Por motivo: conversões
+  var motConv = {'troca':0,'presente':0,'compra_propria':0,'ni':0};
+  var motNaoConv = {'troca':0,'presente':0,'compra_propria':0,'ni':0};
+  // Troca: cross-sell
+  var trocaCross = 0, trocaNaoCross = 0;
+
+  data.forEach(function(r) {
+    var mv = dp((r['Motivo da visita?']||'').trim(), 'motivo_visita').toLowerCase();
+    var conv = isSim(r['Conversa convertida em venda?']);
+    var naoConv = isNao(r['Conversa convertida em venda?']);
+
+    var motKey;
+    if (mv === 'troca' || mv.indexOf('troca') >= 0) motKey = 'troca';
+    else if (mv === 'presente' || mv.indexOf('presente') >= 0 || mv.indexOf('gift') >= 0) motKey = 'presente';
+    else if (!mv || IGNORAR.indexOf(mv) >= 0) motKey = 'ni';
+    else motKey = 'compra_propria';
+
+    motivoMap[motKey]++;
+    if (conv) motConv[motKey]++;
+    if (naoConv) motNaoConv[motKey]++;
+
+    // Submotivo para compra própria
+    if (motKey === 'compra_propria') {
+      var sub = mv || 'compra';
+      // Agrupa submotivos menores
+      if (sub === 'compra' || sub === 'compra própria' || sub === 'própria' || sub === 'uso próprio') sub = 'Própria';
+      else if (sub.indexOf('festa') >= 0 || sub.indexOf('evento') >= 0) sub = 'Festa/Evento';
+      else if (sub.indexOf('casamento') >= 0) sub = 'Casamento';
+      else if (sub.indexOf('viagem') >= 0) sub = 'Viagem';
+      else if (sub.indexOf('form') >= 0 || sub.indexOf('trabalho') >= 0) sub = 'Trabalho';
+      else sub = sub.charAt(0).toUpperCase() + sub.slice(1);
+      if (!subMotivos[sub]) subMotivos[sub] = {total:0,conv:0,naoConv:0};
+      subMotivos[sub].total++;
+      if (conv) subMotivos[sub].conv++;
+      if (naoConv) subMotivos[sub].naoConv++;
+    }
+
+    // Troca: cross-sell
+    if (motKey === 'troca') {
+      if (isSim(r['Tentou cross sell?'])) trocaCross++;
+      else trocaNaoCross++;
+    }
+  });
+
+  // Total converteu / não converteu
+  var totalConv = data.filter(function(r){return isSim(r['Conversa convertida em venda?']);}).length;
+  var totalNaoConv = data.filter(function(r){return isNao(r['Conversa convertida em venda?']);}).length;
+  var convPct = total > 0 ? Math.round(totalConv/total*100) : 0;
+  var naoConvPct = total > 0 ? Math.round(totalNaoConv/total*100) : 0;
+
+  // Ordena submotivos por total desc, pega top 4
+  var subEntries = Object.entries(subMotivos).sort(function(a,b){return b[1].total-a[1].total;}).slice(0,4);
+
+  // ── Monta rawNodes e rawLinks ─────────────────────────────────────────────
+  var rawNodes = [{id:0, name: total+' conversas', col:0, color:GRAY}];
+  var rawLinks = [];
+  var nodeId = 1;
+
+  // Col 1: motivos principais
+  var motIds = {};
+  ['troca','presente','compra_propria','ni'].forEach(function(mk) {
+    if (motivoMap[mk] === 0) return;
+    var label = motivoLabel[mk] + ' (' + motivoMap[mk] + ')';
+    rawNodes.push({id:nodeId, name:label, col:1, color:motivoColor[mk]});
+    rawLinks.push({s:0, t:nodeId, v:motivoMap[mk]});
+    motIds[mk] = nodeId;
+    nodeId++;
+  });
+
+  // Col 2: detalhes por motivo
+  var col2Ids = {};
+
+  // Troca → cross-sell
+  if (motIds['troca'] !== undefined) {
+    var tId = motIds['troca'];
+    if (trocaCross > 0) {
+      rawNodes.push({id:nodeId, name:'Cross-sell ('+trocaCross+')', col:2, color:GREEN});
+      rawLinks.push({s:tId, t:nodeId, v:trocaCross});
+      col2Ids['troca_cross'] = nodeId; nodeId++;
+    }
+    if (trocaNaoCross > 0) {
+      rawNodes.push({id:nodeId, name:'Sem cross-sell ('+trocaNaoCross+')', col:2, color:GRAY});
+      rawLinks.push({s:tId, t:nodeId, v:trocaNaoCross});
+      col2Ids['troca_no'] = nodeId; nodeId++;
+    }
+  }
+
+  // Presente → conv/não conv
+  if (motIds['presente'] !== undefined) {
+    var pId = motIds['presente'];
+    if (motConv['presente'] > 0) {
+      rawNodes.push({id:nodeId, name:'Conv. ('+motConv['presente']+')', col:2, color:GREEN});
+      rawLinks.push({s:pId, t:nodeId, v:motConv['presente']});
+      col2Ids['pres_conv'] = nodeId; nodeId++;
+    }
+    if (motNaoConv['presente'] > 0) {
+      rawNodes.push({id:nodeId, name:'Não conv. ('+motNaoConv['presente']+')', col:2, color:RED});
+      rawLinks.push({s:pId, t:nodeId, v:motNaoConv['presente']});
+      col2Ids['pres_no'] = nodeId; nodeId++;
+    }
+  }
+
+  // Compra própria → submotivos
+  if (motIds['compra_propria'] !== undefined) {
+    var cpId = motIds['compra_propria'];
+    subEntries.forEach(function(e) {
+      var sub = e[0], d2 = e[1];
+      rawNodes.push({id:nodeId, name:sub+' ('+d2.total+')', col:2, color:GREEN});
+      rawLinks.push({s:cpId, t:nodeId, v:d2.total});
+      col2Ids['cp_'+sub] = nodeId; nodeId++;
+    });
+  }
+
+  // NI → passa direto
+  if (motIds['ni'] !== undefined) {
+    var niId = motIds['ni'];
+    rawNodes.push({id:nodeId, name:'Não ident. ('+motivoMap['ni']+')', col:2, color:GRAY});
+    rawLinks.push({s:niId, t:nodeId, v:motivoMap['ni']});
+    col2Ids['ni'] = nodeId; nodeId++;
+  }
+
+  // Col 3: resultado
+  var convId = nodeId;
+  rawNodes.push({id:convId, name:'Converteu — '+totalConv+' ('+convPct+'%)', col:3, color:GREEN});
+  nodeId++;
+  var naoConvId = nodeId;
+  rawNodes.push({id:naoConvId, name:'Não converteu — '+totalNaoConv+' ('+naoConvPct+'%)', col:3, color:RED});
+
+  // Links col2 → col3
+  // Troca cross → conv
+  if (col2Ids['troca_cross'] !== undefined) rawLinks.push({s:col2Ids['troca_cross'], t:convId, v:trocaCross});
+  if (col2Ids['troca_no'] !== undefined) {
+    var tNoConv = Math.min(trocaNaoCross, motConv['troca']);
+    var tNoNaoConv = trocaNaoCross - tNoConv;
+    if (tNoConv > 0) rawLinks.push({s:col2Ids['troca_no'], t:convId, v:tNoConv});
+    if (tNoNaoConv > 0) rawLinks.push({s:col2Ids['troca_no'], t:naoConvId, v:tNoNaoConv});
+  }
+  // Presente conv/nao conv
+  if (col2Ids['pres_conv'] !== undefined) rawLinks.push({s:col2Ids['pres_conv'], t:convId, v:motConv['presente']});
+  if (col2Ids['pres_no'] !== undefined) rawLinks.push({s:col2Ids['pres_no'], t:naoConvId, v:motNaoConv['presente']});
+  // Submotivos compra própria
+  subEntries.forEach(function(e) {
+    var sub = e[0], d2 = e[1];
+    var nid = col2Ids['cp_'+sub];
+    if (nid === undefined) return;
+    if (d2.conv > 0) rawLinks.push({s:nid, t:convId, v:d2.conv});
+    if (d2.naoConv > 0) rawLinks.push({s:nid, t:naoConvId, v:d2.naoConv});
+    // Restante (nem sim nem não)
+    var rest = d2.total - d2.conv - d2.naoConv;
+    if (rest > 0) rawLinks.push({s:nid, t:naoConvId, v:rest});
+  });
+  // NI
+  if (col2Ids['ni'] !== undefined) {
+    var niConv = motConv['ni'], niNao = motNaoConv['ni'];
+    var niRest = motivoMap['ni'] - niConv - niNao;
+    if (niConv > 0) rawLinks.push({s:col2Ids['ni'], t:convId, v:niConv});
+    if (niNao > 0) rawLinks.push({s:col2Ids['ni'], t:naoConvId, v:niNao});
+    if (niRest > 0) rawLinks.push({s:col2Ids['ni'], t:naoConvId, v:niRest});
+  }
+
+  var COLS=4;
+  function colX(col){return 30+col*(W-60-NW)/(COLS-1);}
+  var MAXY=H-40,MINY=20,USABLEY=MAXY-MINY;
+
+  var nodes=rawNodes.map(function(n){return Object.assign({},n,{x0:colX(n.col),x1:colX(n.col)+NW,inV:0,outV:0,y0:0,y1:0});});
+  rawLinks.forEach(function(l){nodes[l.t].inV+=l.v;nodes[l.s].outV+=l.v;});
+  nodes[0].inV=66;
+
+  var colTotals={};
+  nodes.forEach(function(n){var tot=Math.max(n.inV,n.outV,1);colTotals[n.col]=(colTotals[n.col]||0)+tot;});
+
+  var colNodes={};
+  nodes.forEach(function(n){if(!colNodes[n.col])colNodes[n.col]=[];colNodes[n.col].push(n);});
+
+  Object.keys(colNodes).forEach(function(col){
+    var ns=colNodes[col],total=colTotals[col],totalPad=NP*(ns.length-1),avail=USABLEY-totalPad;
+    var y=MINY;
+    ns.forEach(function(n){var h=Math.max(2,avail*Math.max(n.inV,n.outV,1)/total);n.y0=y;n.y1=y+h;y+=h+NP;});
+  });
+
+  function nodeH(n){return n.y1-n.y0;}
+
+  var links=rawLinks.map(function(l){return {source:nodes[l.s],target:nodes[l.t],value:l.v,sy0:0,sy1:0,ty0:0,ty1:0};});
+  var srcOut={},tgtIn={};
+  links.forEach(function(l){
+    var sk=l.source.id,tk=l.target.id;
+    if(srcOut[sk]===undefined)srcOut[sk]=l.source.y0;
+    if(tgtIn[tk]===undefined)tgtIn[tk]=l.target.y0;
+    var sh=nodeH(l.source)*l.value/Math.max(l.source.outV,1);
+    var th=nodeH(l.target)*l.value/Math.max(l.target.inV,1);
+    l.sy0=srcOut[sk];l.sy1=srcOut[sk]+sh;srcOut[sk]+=sh;
+    l.ty0=tgtIn[tk];l.ty1=tgtIn[tk]+th;tgtIn[tk]+=th;
+  });
+
+  var svg=d3.select('#sk').append('svg')
+    .attr('width','100%').attr('style','display:block;height:480px').attr('viewBox','0 0 '+W+' '+H)
+    .attr('preserveAspectRatio','none');
+
+  var defs=svg.append('defs');
+  links.forEach(function(l,i){
+    var gid='sg'+i;
+    var gr=defs.append('linearGradient').attr('id',gid)
+      .attr('gradientUnits','userSpaceOnUse')
+      .attr('x1',l.source.x1).attr('x2',l.target.x0);
+    gr.append('stop').attr('offset','0%').attr('stop-color',l.source.color).attr('stop-opacity',0.6);
+    gr.append('stop').attr('offset','100%').attr('stop-color',l.target.color).attr('stop-opacity',0.35);
+    l.gid=gid;
+  });
+
+  links.forEach(function(l){
+    var x0=l.source.x1,x1=l.target.x0,mx=(x0+x1)/2;
+    var path='M'+x0+','+l.sy0+' C'+mx+','+l.sy0+' '+mx+','+l.ty0+' '+x1+','+l.ty0+' L'+x1+','+l.ty1+' C'+mx+','+l.ty1+' '+mx+','+l.sy1+' '+x0+','+l.sy1+' Z';
+    svg.append('path').attr('d',path).attr('fill','url(#'+l.gid+')').attr('opacity',0.75);
+  });
+
+  nodes.forEach(function(n){
+    svg.append('rect').attr('x',n.x0).attr('y',n.y0)
+      .attr('width',NW).attr('height',Math.max(2,nodeH(n)))
+      .attr('fill',n.color).attr('rx',3);
+  });
+
+  nodes.forEach(function(n){
+    var mx=(n.y0+n.y1)/2;
+    svg.append('text')
+      .attr('x', n.col===COLS-1 ? n.x0-8 : n.x1+8).attr('y',mx).attr('dy','0.35em')
+      .attr('font-size',9).attr('font-family','var(--font-sans,sans-serif)')
+      .attr('fill',n.color===GRAY?textCol:n.color)
+      .attr('font-weight',n.col===COLS-1?'500':'400')
+      .attr('text-anchor', n.col===COLS-1 ? 'end' : 'start').text(n.name);
+  });
+
+  var colLabels=['conversas','motivo da visita','detalhe','resultado'];
+  [0,1,2,3].forEach(function(c){
+    svg.append('text').attr('x',colX(c)+NW/2).attr('y',12)
+      .attr('text-anchor','middle').attr('font-size',10)
+      .attr('font-family','var(--font-sans,sans-serif)')
+      .attr('fill',textCol).text(colLabels[c]);
+  });
+}
+
 loadData();
 
 </script>
