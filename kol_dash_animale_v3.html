@@ -85,7 +85,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .funil-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px}
 .funil-pct{font-size:12px;font-weight:700;color:#fff}
 .donut-row{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:4px}
-#chartUso,#chartEsp{max-width:120px!important;max-height:120px!important}
+#chartUso,#chartEsp,#chartPerfil{max-width:120px!important;max-height:120px!important}
 .donut-legend{display:flex;flex-direction:column;gap:3px;width:100%}
 .dl{display:flex;align-items:center;gap:5px;font-size:12px}.dl .swatch{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .dl .lbl{flex:1;color:var(--text-muted)}.dl .val{font-weight:600}
@@ -157,7 +157,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 </div>
 <div id="view-cl" style="display:none">
   <div class="row5" style="margin-bottom:12px">
-    <div class="card" style="min-height:200px;display:flex;flex-direction:column"><div class="card-title">Perfil Comportamental</div><div class="donut-row" style="flex:1;justify-content:center;align-items:center"><canvas id="chartPerfil" width="70" height="70"></canvas><div class="donut-legend" id="leg-perfil"></div></div></div>
+    <div class="card"><div class="card-title">Perfil Comportamental</div><div class="donut-row" style="align-items:center;max-width:200px;margin:0 auto"><canvas id="chartPerfil" width="70" height="70"></canvas><div class="donut-legend" id="leg-perfil"></div></div></div>
     <div class="card" style="min-height:200px;display:flex;flex-direction:column"><div class="card-title">Perfil que Mais Converte</div><div id="perfil-converte" style="flex:1;display:flex;align-items:center;justify-content:center"></div></div>
     <div class="card" style="min-height:200px"><div class="card-title">Sentimento dos Clientes</div><div id="sentimento-bars" style="margin-top:12px"></div></div>
     <div class="card"><div class="card-title">Para Uso Próprio?</div><div class="donut-row" style="align-items:center;max-width:200px;margin:0 auto"><canvas id="chartUso" width="70" height="70"></canvas><div class="donut-legend" id="leg-uso"></div></div></div>
@@ -166,12 +166,12 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   <div class="row4b" style="margin-bottom:12px">
     <div class="card"><div class="card-title">Motivo da Visita</div><div class="hbar-list" id="hbar-motivo" style="margin-top:8px"></div></div>
     <div class="card"><div class="card-title">O que o Cliente Procurou?</div><div class="hbar-list" id="hbar-produto" style="margin-top:8px"></div></div>
-    <div class="card" style="min-height:200px;display:flex;flex-direction:column"><div class="card-title">Combinações de Compra</div><div class="hbar-list" id="hbar-combo" style="flex:1;display:flex;align-items:center;justify-content:center"></div></div>
+    <div class="card" style="min-height:200px"><div class="card-title">Combinações de Compra</div><div class="hbar-list" id="hbar-combo" style="margin-top:8px"></div></div>
     <div class="card" style="min-height:200px;display:flex;flex-direction:column"><div class="card-title">Qtd. de Itens Comprados</div><div class="donut-row" style="flex:1;justify-content:center;align-items:center"><canvas id="chartItens" width="70" height="70"></canvas><div class="donut-legend" id="leg-itens"></div></div></div>
   </div>
   <div class="row3b">
     <div class="card"><div class="card-title">Objeções Levantadas</div><div class="obj-wrap" style="margin-top:8px"><table class="obj-tbl"><thead><tr><th>Objeção</th><th>#</th><th>% total</th></tr></thead><tbody id="tbl-obj-body"></tbody></table></div></div>
-    <div class="card" style="min-height:200px;display:flex;flex-direction:column"><div class="card-title">Principais Motivos de Perda</div><div class="hbar-list" id="hbar-perda" style="flex:1;display:flex;align-items:center;justify-content:center"></div></div>
+    <div class="card" style="min-height:200px"><div class="card-title">Principais Motivos de Perda</div><div class="hbar-list" id="hbar-perda" style="margin-top:8px"></div></div>
     <div class="card"><div class="card-title">Concorrência na Conversa</div><div class="card-sub" id="conc-sub"></div><div class="hbar-list" id="hbar-conc"></div></div>
   </div>
 </div>
@@ -180,6 +180,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 
 const GSHEET_CSV = "https://docs.google.com/spreadsheets/d/1_B39tmwDH6p4KS29qI4xxfbKzDLyIVNW2qACIzmrwtA/gviz/tq?tqx=out:csv&sheet=conversas";
 const GSHEET_DEST = "https://docs.google.com/spreadsheets/d/1_B39tmwDH6p4KS29qI4xxfbKzDLyIVNW2qACIzmrwtA/gviz/tq?tqx=out:csv&sheet=destaques";
+const GSHEET_ITENS = "https://docs.google.com/spreadsheets/d/1_B39tmwDH6p4KS29qI4xxfbKzDLyIVNW2qACIzmrwtA/gviz/tq?tqx=out:csv&sheet=itens_comprados";
 const DE_PARA = {produto:{},motivo_visita:{},objecao:{}};
 
 function dp(val, campo) {
@@ -270,7 +271,7 @@ function renderHBars(id, data, color) {
   }).join("");
 }
 
-var ALL_DATA = [], FILTERED = [], ALL_DEST = [];
+var ALL_DATA = [], FILTERED = [], ALL_DEST = [], ALL_ITENS = [];
 var filters = {lojas: [], vendedores: [], conv: "todas", dateFrom: "", dateTo: ""};
 
 function applyFilters() {
@@ -682,13 +683,55 @@ function updateDonut(cid, lid, vals, colors, labels, total) {
 function renderClienteView(data) {
   var n = data.length || 1;
 
-  // Perfil Comportamental — aguardando perfil_cliente via Supabase
-  document.getElementById("leg-perfil").innerHTML = "";
-  document.getElementById("chartPerfil").style.display = "none";
-  document.getElementById("chartPerfil").closest(".card").querySelector(".donut-row").innerHTML = "<p style='color:var(--text-dim);font-size:14px;text-align:center;padding:60px 0;width:100%'>Em breve</p>";
+  // Perfil Comportamental
+  var PERFIS = ["Decidido","Indeciso","Pesquisador"];
+  var PERFIS_COLORS = ["#22c55e","#f59e0b","#6366f1"];
+  var perfilCount = {"Decidido":0,"Indeciso":0,"Pesquisador":0};
+  var perfilConv  = {"Decidido":0,"Indeciso":0,"Pesquisador":0};
+  data.forEach(function(r){
+    var v = (r["perfil_cliente"]||"").trim();
+    var vN = v.charAt(0).toUpperCase() + v.slice(1).toLowerCase();
+    if (perfilCount[vN] !== undefined) {
+      perfilCount[vN]++;
+      if (isSim(r["Conversa convertida em venda?"])) perfilConv[vN]++;
+    }
+  });
+  var perfilVals = PERFIS.map(function(p){ return perfilCount[p]; });
+  var perfilTotal = perfilVals.reduce(function(a,b){return a+b;},0);
+  if (perfilTotal > 0) {
+    updateDonut("chartPerfil","leg-perfil",perfilVals,PERFIS_COLORS,PERFIS,perfilTotal);
+  } else {
+    document.getElementById("chartPerfil").closest(".card").querySelector(".donut-row").innerHTML = "<p style='color:var(--text-dim);font-size:14px;text-align:center;padding:60px 0;width:100%'>Sem dados de perfil</p>";
+  }
 
-  // Perfil que Mais Converte — aguardando perfil_cliente via Supabase
-  document.getElementById("perfil-converte").innerHTML = "<p style='color:var(--text-dim);font-size:16px;font-weight:500;text-align:center'>Em breve</p>";
+  // Perfil que Mais Converte — barras rankeadas por taxa de conversão
+  var perfilTaxas = PERFIS
+    .filter(function(p){ return perfilCount[p] > 0; })
+    .map(function(p,_){
+      var idx = PERFIS.indexOf(p);
+      return { label: p, taxa: perfilConv[p]/perfilCount[p], conv: perfilConv[p], total: perfilCount[p], cor: PERFIS_COLORS[idx] };
+    })
+    .sort(function(a,b){ return b.taxa - a.taxa; });
+  if (perfilTaxas.length > 0) {
+    var maxTaxa = perfilTaxas[0].taxa;
+    document.getElementById("perfil-converte").innerHTML =
+      "<div style='width:100%;padding:8px 0'>" +
+      perfilTaxas.map(function(item){
+        var pct = Math.round(item.taxa * 100);
+        var barW = maxTaxa > 0 ? Math.round(item.taxa/maxTaxa*100) : 0;
+        return "<div style='display:flex;align-items:center;gap:8px;margin-bottom:12px'>" +
+          "<span style='font-size:12px;color:var(--text);min-width:80px'>"+item.label+"</span>" +
+          "<div style='flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden'>" +
+            "<div style='height:100%;width:"+barW+"%;background:"+item.cor+";border-radius:4px'></div>" +
+          "</div>" +
+          "<span style='font-size:13px;font-weight:600;color:"+item.cor+";min-width:36px;text-align:right'>"+pct+"%</span>" +
+          "<span style='font-size:11px;color:var(--text-muted);min-width:40px'>"+item.conv+"/"+item.total+"</span>" +
+        "</div>";
+      }).join("") +
+      "</div>";
+  } else {
+    document.getElementById("perfil-converte").innerHTML = "<p style='color:var(--text-dim);font-size:14px;text-align:center'>Sem dados de perfil</p>";
+  }
 
   // Sentimento — normaliza case (api retorna lowercase)
   var scMap = {"encantado":"Encantado","valorizado":"Valorizado","neutro":"Neutro","frustrado":"Frustrado"};
@@ -747,13 +790,55 @@ function renderClienteView(data) {
   })();
   renderHBars("hbar-produto", produtoData, "var(--blue)");
 
-  // Combinações de compra — aguardando purchased_items via Supabase
-  document.getElementById("hbar-combo").innerHTML = "<p style='color:var(--text-dim);font-size:14px;padding:40px 0;text-align:center;width:100%'>Em breve</p>";
+  // Combinações de compra — lê aba itens_comprados
+  (function(){
+    var convIds = new Set(data.map(function(r){return r["conversa_id"];}));
+    // Agrupa itens por conversa
+    var itensPorConv = {};
+    ALL_ITENS.forEach(function(row){
+      var id = row["conversa_id"];
+      if (!convIds.has(id)) return;
+      if (!itensPorConv[id]) itensPorConv[id] = [];
+      itensPorConv[id].push((row["item_comprado"]||"").trim().toLowerCase());
+    });
+    // Conta pares
+    var pares = {};
+    Object.values(itensPorConv).forEach(function(itens){
+      if (itens.length < 2) return;
+      for (var i=0; i<itens.length; i++) {
+        for (var j=i+1; j<itens.length; j++) {
+          var par = [itens[i],itens[j]].sort().join(" + ");
+          pares[par] = (pares[par]||0) + 1;
+        }
+      }
+    });
+    var parData = Object.entries(pares).map(function(e){return {label:e[0],val:e[1]};}).sort(function(a,b){return b.val-a.val;}).slice(0,8);
+    if (parData.length > 0) {
+      renderHBars("hbar-combo", parData, "var(--cyan)");
+    } else {
+      document.getElementById("hbar-combo").innerHTML = "<p style='color:var(--text-dim);font-size:14px;padding:40px 0;text-align:center;width:100%'>Sem combinações registradas</p>";
+    }
+  })();
 
-  // Qtd. de Itens Comprados — aguardando purchased_items via Supabase
-  document.getElementById("leg-itens").innerHTML = "";
-  document.getElementById("chartItens").style.display = "none";
-  document.getElementById("chartItens").closest(".card").querySelector(".donut-row").innerHTML = "<p style='color:var(--text-dim);font-size:14px;text-align:center;padding:60px 0;width:100%'>Em breve</p>";
+  // Qtd. de Itens Comprados — barras horizontais
+  (function(){
+    var convIds = new Set(data.map(function(r){return r["conversa_id"];}));
+    var qtdMap = {};
+    data.forEach(function(r){ qtdMap[r["conversa_id"]] = parseInt(r["qtd_itens_comprados"]||"0")||0; });
+    var buckets = {"1 item":0,"2 itens":0,"3+ itens":0};
+    Object.values(qtdMap).forEach(function(q){
+      if (q===1) buckets["1 item"]++;
+      else if (q===2) buckets["2 itens"]++;
+      else if (q>=3) buckets["3+ itens"]++;
+      // 0 itens = não converteu, não mostra
+    });
+    var itensData = Object.entries(buckets).map(function(e){return {label:e[0],val:e[1]};});
+    // Remove canvas e substitui por barras
+    var card = document.getElementById("chartItens").closest(".card");
+    var donutRow = card.querySelector(".donut-row");
+    donutRow.innerHTML = "<div class='hbar-list' style='width:100%;padding:8px 0' id='hbar-itens'></div>";
+    renderHBars("hbar-itens", itensData, "var(--cyan)");
+  })();
 
   // Objeções — coluna "Qual foi a objeção?", freq # e % do total
   var oa = {};
@@ -773,7 +858,27 @@ function renderClienteView(data) {
     }).join("");
 
   // Motivos de perda — coluna "Qual foi o motivo da não conversão?"
-  document.getElementById("hbar-perda").innerHTML = "<p style='color:var(--text-dim);font-size:16px;font-weight:500;text-align:center'>Em breve</p>";
+  (function(){
+    var LABEL_PERDA = {
+      "sem_estoque":"Sem estoque","preco":"Preço","tamanho_fit":"Tamanho / Fit",
+      "prefere_pesquisar":"Prefere pesquisar","acompanhante":"Acompanhante",
+      "forma_pagamento":"Forma de pagamento","atendimento":"Atendimento / Produto",
+      "expectativa":"Expectativa de produto","tempo":"Tempo","sem_necessidade":"Sem necessidade","outro":"Outro"
+    };
+    var perdaCount = {};
+    data.forEach(function(r){
+      var v = (r["Qual foi o motivo da não conversão?"]||"").trim().toLowerCase();
+      if (!v || v==="não aplicável" || v==="nao aplicavel" || v==="não se aplica") return;
+      var label = LABEL_PERDA[v] || (v.charAt(0).toUpperCase()+v.slice(1));
+      perdaCount[label] = (perdaCount[label]||0)+1;
+    });
+    var perdaData = Object.entries(perdaCount).map(function(e){return {label:e[0],val:e[1]};}).sort(function(a,b){return b.val-a.val;});
+    if (perdaData.length > 0) {
+      renderHBars("hbar-perda", perdaData, "var(--bad)");
+    } else {
+      document.getElementById("hbar-perda").innerHTML = "<p style='color:var(--text-dim);font-size:14px;text-align:center'>Sem motivos de perda registrados</p>";
+    }
+  })();
 
   // Concorrência — coluna "Qual foi o concorrente mencionado?" separada por ";"
   var concData = {};
@@ -804,6 +909,11 @@ async function loadData() {
       var destText = await destRes.text();
       ALL_DEST = rowsToObjects(parseCSV(destText));
     } catch(e2) { ALL_DEST = []; }
+    try {
+      var itensRes = await fetch(GSHEET_ITENS);
+      var itensText = await itensRes.text();
+      ALL_ITENS = rowsToObjects(parseCSV(itensText));
+    } catch(e3) { ALL_ITENS = []; }
     var dates = ALL_DATA.map(function(r){return parseDate(r.data_hora);}).filter(function(d){return d>new Date(0);});
     if (dates.length) {
       var mn = new Date(Math.min.apply(null,dates)), mx = new Date(Math.max.apply(null,dates));
