@@ -806,12 +806,15 @@ function renderClienteView(data) {
     ALL_ITENS.forEach(function(row){
       var id = row["conversa_id"];
       if (!convIds.has(id)) return;
-      if (!itensPorConv[id]) itensPorConv[id] = [];
-      itensPorConv[id].push((row["item_comprado"]||"").trim().toLowerCase());
+      if (!itensPorConv[id]) itensPorConv[id] = new Set();
+      itensPorConv[id].add((row["item_comprado"]||"").trim().toLowerCase());
     });
-    // Conta pares
+    // Conta pares — usa apenas TIPOS DISTINTOS de item por conversa,
+    // evitando pares "item + mesmo item" quando o cliente compra várias unidades
+    // do mesmo tipo (comum em lingerie: várias calcinhas de cores/tamanhos diferentes)
     var pares = {};
-    Object.values(itensPorConv).forEach(function(itens){
+    Object.values(itensPorConv).forEach(function(itensSet){
+      var itens = Array.from(itensSet);
       if (itens.length < 2) return;
       for (var i=0; i<itens.length; i++) {
         for (var j=i+1; j<itens.length; j++) {
@@ -1007,8 +1010,12 @@ function renderSankey() {
   // Total converteu / não converteu
   var totalConv = data.filter(function(r){return isSim(r['Conversa convertida em venda?']);}).length;
   var totalNaoConv = data.filter(function(r){return isNao(r['Conversa convertida em venda?']);}).length;
-  var convPct = total > 0 ? Math.round(totalConv/total*100) : 0;
-  var naoConvPct = total > 0 ? Math.round(totalNaoConv/total*100) : 0;
+  // Denominador consistente com o bloco Atendimento: só conversas com conversao
+  // preenchida como sim/não. Exclui "não aplicável" (ex: trocas sem intenção de
+  // compra), que não deveria diluir a taxa de conversão.
+  var convDenSankey = totalConv + totalNaoConv;
+  var convPct = convDenSankey > 0 ? Math.round(totalConv/convDenSankey*100) : 0;
+  var naoConvPct = convDenSankey > 0 ? Math.round(totalNaoConv/convDenSankey*100) : 0;
 
   // Ordena submotivos por total desc, pega top 4
   var subEntries = Object.entries(subMotivos).sort(function(a,b){return b[1].total-a[1].total;}).slice(0,4);
