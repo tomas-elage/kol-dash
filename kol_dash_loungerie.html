@@ -845,12 +845,18 @@ function renderClienteView(data) {
     renderHBars("hbar-itens", itensData, "var(--cyan)");
   })();
 
+  function isNaoAplicavel(v) {
+    var t = (v||'').trim().toLowerCase();
+    return !t || t==='não aplicável' || t==='nao aplicavel' || t==='não se aplica' || t==='nao se aplica';
+  }
+
   // Objeções — coluna "Qual foi a objeção?", freq # e % do total
   var oa = {};
   data.forEach(function(r){
     var raw = (r["Qual foi a objeção?"]||"").trim();
     if (!raw) return;
     raw.split(";").forEach(function(s){
+      if (isNaoAplicavel(s)) return;
       var k = dp(s.trim(),"objecao");
       if (!k) return;
       oa[k] = (oa[k]||0) + 1;
@@ -873,7 +879,7 @@ function renderClienteView(data) {
     var perdaCount = {};
     data.forEach(function(r){
       var v = (r["Qual foi o motivo da não conversão?"]||"").trim().toLowerCase();
-      if (!v || v==="não aplicável" || v==="nao aplicavel" || v==="não se aplica") return;
+      if (isNaoAplicavel(v)) return;
       var label = LABEL_PERDA[v] || (v.charAt(0).toUpperCase()+v.slice(1));
       perdaCount[label] = (perdaCount[label]||0)+1;
     });
@@ -891,11 +897,10 @@ function renderClienteView(data) {
   data.forEach(function(r){
     var raw = (r["Qual foi o concorrente mencionado?"]||"").trim();
     if (!raw) return;
+    var tokens = raw.split(";").map(function(s){return s.trim();}).filter(function(s){return s && !isNaoAplicavel(s);});
+    if (tokens.length === 0) return; // só "não aplicável" -> não conta como menção real
     concCount++;
-    raw.split(";").forEach(function(s){
-      var k = s.trim();
-      if (k) concData[k] = (concData[k]||0) + 1;
-    });
+    tokens.forEach(function(k){ concData[k] = (concData[k]||0) + 1; });
   });
   document.getElementById("conc-sub").textContent = pct(concCount,n)+"% mencionaram concorrentes";
   renderHBars("hbar-conc", Object.entries(concData).map(function(e){return {label:e[0],val:e[1]};}).sort(function(a,b){return b.val-a.val;}), "var(--orange)");
