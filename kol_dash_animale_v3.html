@@ -878,6 +878,10 @@ function renderClienteView(data) {
     };
     var perdaCount = {};
     data.forEach(function(r){
+      // Só considera motivo de perda para conversas efetivamente NÃO convertidas —
+      // o dado bruto às vezes vem preenchido mesmo em vendas convertidas (inconsistência
+      // de origem), então precisa filtrar aqui, não só por valor vazio/"não aplicável".
+      if (!isNao(r["Conversa convertida em venda?"])) return;
       var v = (r["Qual foi o motivo da não conversão?"]||"").trim().toLowerCase();
       if (isNaoAplicavel(v)) return;
       var label = LABEL_PERDA[v] || (v.charAt(0).toUpperCase()+v.slice(1));
