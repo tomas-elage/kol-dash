@@ -7,6 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <style>:root{--bg:#0d1117;--bg-card:#161b22;--border:#2a3444;--text:#e6edf3;--text-muted:#7d8fa3;--text-dim:#4a5568;--blue:#3b82f6;--cyan:#06b6d4;--green:#22c55e;--warn:#f59e0b;--bad:#ef4444;--orange:#fb923c;}
+[data-theme="light"]{--bg:#f4f6f9;--bg-card:#ffffff;--border:#dde3ea;--text:#1a202c;--text-muted:#5b6b7f;--text-dim:#94a3b8;}
+.theme-toggle{background:transparent;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;font-size:13px;border-radius:6px;padding:5px 9px;line-height:1}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:13px}
 #loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px}
@@ -138,6 +140,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   <div class="filter-chip" id="chip-vend" onclick="toggleDD('dd-vend',event)">VENDEDORES <span id="vend-badge" class="badge" style="display:none">0</span> ▾<div class="dropdown" id="dd-vend"></div></div>
   <div class="filter-chip" onclick="toggleDD('dd-conv',event)">CONVERSAS ▾<div class="dropdown" id="dd-conv" style="min-width:210px"><label><input type="radio" name="conv_filter" value="aprovadas" onchange="applyFilters()"> Apenas auditadas</label><label><input type="radio" name="conv_filter" value="todas" checked onchange="applyFilters()"> Auditadas + pendentes</label></div></div>
   <div class="nav-right">
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Alternar modo claro/escuro">🌙</button>
     <button class="btn-clear" onclick="clearFilters()">limpar filtros</button>
     <div class="filter-chip" onclick="toggleDD('dd-date',event)">📅 <span id="date-label">—</span><div class="dropdown dropdown-date" id="dd-date" onclick="event.stopPropagation()"><label>De</label><input type="date" id="date-from" onchange="applyFilters()"><label>Até</label><input type="date" id="date-to" onchange="applyFilters()"><button onclick="applyFilters();closeAllDD()">Aplicar</button></div></div>
     <span class="last-update" id="last-update"></span>
@@ -164,6 +167,9 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   </div>
   <div style="margin-top:12px">
     <div class="card"><div class="card-title">Indicadores que Mais Impactam a Conversão</div><div class="card-sub">Conversão de quem fez vs. quem não fez o indicador — do maior impacto positivo ao maior negativo. Indicadores de Fechamento excluídos (tendem a ser consequência da venda, não causa).</div><div class="tbl-wrap"><table class="stbl"><thead><tr><th>Indicador</th><th style="text-align:right">Conv. fez</th><th style="text-align:right">Conv. não fez</th><th style="text-align:right">Impacto</th></tr></thead><tbody id="tbl-impacto-body"></tbody></table></div></div>
+  </div>
+  <div style="margin-top:12px">
+    <div class="card"><div class="card-title">Distribuição de Duração das Conversas</div><div class="card-sub">Quantidade de conversas por faixa de duração — blocos de 2 minutos</div><canvas id="chartDuracao" height="70"></canvas></div>
   </div>
 </div>
 <div id="view-cl" style="display:none">
@@ -263,6 +269,30 @@ function parseDate(s) {
   var d = parts[0].split("/");
   return new Date(d[2] + "-" + d[1] + "-" + d[0] + "T" + (parts[1] || "00:00:00"));
 }
+
+function applyTheme(theme) {
+  if (theme === "light") {
+    document.body.setAttribute("data-theme", "light");
+    var btn = document.getElementById("theme-toggle");
+    if (btn) btn.textContent = "☀️";
+  } else {
+    document.body.removeAttribute("data-theme");
+    var btn2 = document.getElementById("theme-toggle");
+    if (btn2) btn2.textContent = "🌙";
+  }
+}
+function toggleTheme() {
+  var atual = document.body.getAttribute("data-theme") === "light" ? "light" : "dark";
+  var novo = atual === "light" ? "dark" : "light";
+  applyTheme(novo);
+  try { localStorage.setItem("kol-theme", novo); } catch(e) {}
+}
+(function(){
+  try {
+    var salvo = localStorage.getItem("kol-theme");
+    if (salvo === "light") applyTheme("light");
+  } catch(e) {}
+})();
 
 function parseDuration(s) {
   if (!s) return 0;
@@ -744,9 +774,48 @@ function renderAll() {
   var _dIds = new Set(FILTERED.map(function(r){return r.conversa_id || r["conversa_id"];}));
   var _dFilt = ALL_DEST.filter(function(d){return _dIds.has(d.conversa_id);});
   renderDestaques(_dFilt);
+  updateDuracaoChart(data);
 }
 
 var donutCharts = {};
+var duracaoChart = null;
+function updateDuracaoChart(data) {
+  var el = document.getElementById("chartDuracao");
+  if (!el) return;
+  var BIN = 2; // minutos por faixa
+  var buckets = {};
+  var maxBucket = 0;
+  data.forEach(function(r){
+    var min = parseDuration(r.duracao);
+    if (min <= 0) return;
+    var b = Math.floor(min / BIN);
+    buckets[b] = (buckets[b]||0) + 1;
+    if (b > maxBucket) maxBucket = b;
+  });
+  var labels = [], counts = [];
+  for (var i = 0; i <= maxBucket; i++) {
+    labels.push((i*BIN) + "-" + (i*BIN+BIN) + "min");
+    counts.push(buckets[i] || 0);
+  }
+  if (duracaoChart) {
+    duracaoChart.data.labels = labels;
+    duracaoChart.data.datasets[0].data = counts;
+    duracaoChart.update();
+  } else {
+    duracaoChart = new Chart(el, {
+      type: "bar",
+      data: { labels: labels, datasets: [{ data: counts, backgroundColor: "#3b82f6", borderRadius: 3, maxBarThickness: 40 }] },
+      options: {
+        plugins: { legend: { display: false }, tooltip: { enabled: true } },
+        scales: {
+          x: { ticks: { color: "#7d8fa3", font: { size: 10 } }, grid: { display: false } },
+          y: { beginAtZero: true, ticks: { color: "#7d8fa3", precision: 0 }, grid: { color: "rgba(125,143,163,.15)" } }
+        },
+        animation: { duration: 300 }
+      }
+    });
+  }
+}
 function updateDonut(cid, lid, vals, colors, labels, total) {
   if (donutCharts[cid]) { donutCharts[cid].data.datasets[0].data = vals; donutCharts[cid].update(); }
   else {
