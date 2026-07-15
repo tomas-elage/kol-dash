@@ -155,12 +155,16 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   <div class="row4" style="margin-bottom:12px">
     <div class="card"><div class="card-title">Ranking de Vendedores</div><div class="card-sub">Por índice de performance</div><div class="tbl-wrap"><table class="stbl" id="tbl-vend"><thead><tr><th onclick="sortTable('tbl-vend',0)">Pos<span class="sort-arrow" id="tbl-vend-0">↕</span></th><th onclick="sortTable('tbl-vend',1)">Vendedor<span class="sort-arrow" id="tbl-vend-1">↕</span></th><th onclick="sortTable('tbl-vend',2)" style="text-align:right">#Conv<span class="sort-arrow" id="tbl-vend-2">↕</span></th><th onclick="sortTable('tbl-vend',3)" style="text-align:right">Ader.<span class="sort-arrow" id="tbl-vend-3">↕</span></th><th onclick="sortTable('tbl-vend',4)" style="text-align:right">Conv.%<span class="sort-arrow" id="tbl-vend-4">↕</span></th></tr></thead><tbody id="tbl-vend-body"></tbody></table></div></div>
     <div class="card"><div class="card-title">Ranking de Lojas</div><div class="card-sub">Por conversão (%)</div><div class="tbl-wrap"><table class="stbl" id="tbl-lojas"><thead><tr><th onclick="sortTable('tbl-lojas',0)">Pos<span class="sort-arrow" id="tbl-lojas-0">↕</span></th><th onclick="sortTable('tbl-lojas',1)">Loja<span class="sort-arrow" id="tbl-lojas-1">↕</span></th><th onclick="sortTable('tbl-lojas',2)" style="text-align:right">#Conv<span class="sort-arrow" id="tbl-lojas-2">↕</span></th><th onclick="sortTable('tbl-lojas',3)" style="text-align:right">Ader.<span class="sort-arrow" id="tbl-lojas-3">↕</span></th><th onclick="sortTable('tbl-lojas',4)" style="text-align:right">Conv.%<span class="sort-arrow" id="tbl-lojas-4">↕</span></th></tr></thead><tbody id="tbl-lojas-body"></tbody></table></div></div>
-    <div class="card"><div class="card-title">Indicadores Mais Presentes</div><div class="card-sub">Cumpridos no maior número de conversas</div><div class="tbl-wrap" style="max-height:170px"><table class="stbl"><thead><tr><th>Indicador</th><th style="text-align:right">%</th></tr></thead><tbody id="tbl-ind-body"></tbody></table></div></div>
+    <div class="card"><div class="card-title">Indicadores Mais Presentes</div><div class="card-sub">Cumpridos no maior número de conversas</div><div class="tbl-wrap" style="max-height:170px"><table class="stbl"><thead><tr><th>Indicador</th><th style="text-align:right">%</th><th style="text-align:right">Conv.%</th></tr></thead><tbody id="tbl-ind-body"></tbody></table></div></div>
     <div class="card"><div class="card-title">Métricas da Conversa</div><div class="metrics-grid"><div><div class="metric-label">Tempo Médio</div><div class="metric-val" id="m-tempo">—</div></div><div><div class="metric-label">Total Conversas</div><div class="metric-val" id="m-total">—</div></div></div><div class="fala-label">Palavras: Vendedor × Cliente</div><div class="fala-bar"><div class="v" id="fala-v" style="width:50%"></div><div class="c" id="fala-c" style="width:50%"></div></div><div class="fala-legend"><span><span class="dot" style="background:var(--blue)"></span>Vendedor <span id="fala-vp">—</span></span><span><span class="dot" style="background:var(--cyan)"></span>Cliente <span id="fala-cp">—</span></span></div></div>
   </div>
   <div class="row2">
     <div class="card" style="overflow:visible"><div class="card-title">Aderência ao Playbook por Bloco</div><div class="card-sub">Aderência média do time em cada bloco</div><div class="blocos-arc" id="blocos-arc"></div><div class="blocos-detail" id="blocos-detail"></div><div style="text-align:center;margin-top:10px;font-size:10px;color:var(--text-dim)">% de aderência média em cada bloco do playbook</div></div>
     <div class="card"><div class="card-title">Funil do Atendimento</div><div class="card-sub">% de conversas que chegam até cada etapa</div><div class="funil-list" id="funil-list"></div></div>
+  </div>
+  <div class="row2" style="margin-top:12px">
+    <div class="card"><div class="card-title">Top 5 — Indicadores que Mais Impactam Positivamente a Conversão</div><div class="card-sub">Conversão de quem fez vs. quem não fez, mesma amostra</div><div class="tbl-wrap"><table class="stbl"><thead><tr><th>Indicador</th><th style="text-align:right">Conv. fez</th><th style="text-align:right">Conv. não fez</th><th style="text-align:right">Impacto</th></tr></thead><tbody id="tbl-impacto-pos-body"></tbody></table></div></div>
+    <div class="card"><div class="card-title">Top 5 — Indicadores que Mais Impactam Negativamente a Conversão</div><div class="card-sub">Conversão de quem fez vs. quem não fez, mesma amostra</div><div class="tbl-wrap"><table class="stbl"><thead><tr><th>Indicador</th><th style="text-align:right">Conv. fez</th><th style="text-align:right">Conv. não fez</th><th style="text-align:right">Impacto</th></tr></thead><tbody id="tbl-impacto-neg-body"></tbody></table></div></div>
   </div>
 </div>
 <div id="view-cl" style="display:none">
@@ -549,22 +553,71 @@ function renderAll() {
     {f:"Perguntou o nome do cliente?",                 sim:isSim, lbS:"Perguntou o nome do cliente",  lbN:"Não perguntou o nome"},
   ];
   var ic = [];
+  var impactoPorCampo = []; // um valor só por campo, pra tabelas de impacto (evita duplicar direções inversas)
   indsCfg.forEach(function(x) {
     var simCount=0, naoCount=0;
+    var simConvNum=0, simConvDen=0, naoConvNum=0, naoConvDen=0;
     data.forEach(function(r){
       var v = r[x.f];
       if (!v||v.trim()===""||v.toLowerCase().trim()==="não aplicável") return;
-      if (x.sim(v)) simCount++; else naoCount++;
+      var cv = (r["Conversa convertida em venda?"]||"").trim().toLowerCase();
+      var temConversao = (cv==="sim"||cv==="não"||cv==="nao");
+      if (x.sim(v)) {
+        simCount++;
+        if (temConversao) { simConvDen++; if (cv==="sim") simConvNum++; }
+      } else {
+        naoCount++;
+        if (temConversao) { naoConvDen++; if (cv==="sim") naoConvNum++; }
+      }
     });
     var den = simCount + naoCount;
     if (den===0) return;
-    ic.push({label:x.lbS, p:Math.round(simCount/den*100)});
-    ic.push({label:x.lbN, p:Math.round(naoCount/den*100)});
+    var simConvPct = simConvDen>0 ? Math.round(simConvNum/simConvDen*100) : null;
+    var naoConvPct = naoConvDen>0 ? Math.round(naoConvNum/naoConvDen*100) : null;
+    ic.push({label:x.lbS, p:Math.round(simCount/den*100), convPct: simConvPct});
+    ic.push({label:x.lbN, p:Math.round(naoCount/den*100), convPct: naoConvPct});
+
+    // Amostra mínima pra considerar o impacto confiável (evita ruído de poucos casos)
+    var AMOSTRA_MINIMA = 5;
+    if (simConvPct !== null && naoConvPct !== null && simConvDen >= AMOSTRA_MINIMA && naoConvDen >= AMOSTRA_MINIMA) {
+      impactoPorCampo.push({
+        campo: x.f, labelSim: x.lbS, labelNao: x.lbN,
+        simConvPct: simConvPct, naoConvPct: naoConvPct,
+        lift: simConvPct - naoConvPct,
+        simConvDen: simConvDen, naoConvDen: naoConvDen
+      });
+    }
   });
   ic.sort(function(a,b){return b.p-a.p;});
   document.getElementById("tbl-ind-body").innerHTML = ic.map(function(c){
-    return "<tr><td>"+c.label+"</td><td class=\"num\" style=\"color:var(--cyan);font-weight:600\">"+c.p+"%</td></tr>";
+    var convCell = c.convPct===null ? "<span style=\"color:var(--text-dim)\">—</span>" : c.convPct+"%";
+    return "<tr><td>"+c.label+"</td><td class=\"num\" style=\"color:var(--cyan);font-weight:600\">"+c.p+"%</td><td class=\"num\">"+convCell+"</td></tr>";
   }).join("");
+
+  // Top 5 indicadores que mais IMPACTAM POSITIVAMENTE a conversão
+  // (maior lift = fazer isso correlaciona com mais conversão) — um por campo, nunca as 2 direções
+  var impactoOrdenado = impactoPorCampo.slice().sort(function(a,b){return b.lift-a.lift;});
+  var top5Positivo = impactoOrdenado.filter(function(x){return x.lift>0;}).slice(0,5);
+  var top5Negativo = impactoOrdenado.filter(function(x){return x.lift<0;}).sort(function(a,b){return a.lift-b.lift;}).slice(0,5);
+
+  function renderImpactoTable(elId, lista, positivo) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    if (lista.length===0) {
+      el.innerHTML = "<p style=\"color:var(--text-dim);font-size:13px;text-align:center;padding:20px 0\">Amostra insuficiente pra calcular impacto</p>";
+      return;
+    }
+    el.innerHTML = lista.map(function(x){
+      var sinal = x.lift>0 ? "+" : "";
+      var cor = positivo ? "var(--good, #22c55e)" : "var(--bad, #ef4444)";
+      return "<tr><td title=\""+x.simConvDen+" fez / "+x.naoConvDen+" não fez\">"+x.labelSim+"</td>" +
+        "<td class=\"num\">"+x.simConvPct+"%</td>" +
+        "<td class=\"num\">"+x.naoConvPct+"%</td>" +
+        "<td class=\"num\" style=\"color:"+cor+";font-weight:700\">"+sinal+x.lift+"pp</td></tr>";
+    }).join("");
+  }
+  renderImpactoTable("tbl-impacto-pos-body", top5Positivo, true);
+  renderImpactoTable("tbl-impacto-neg-body", top5Negativo, false);
 
   // Funil processual: cada etapa é independente, mostra % de conversas que passaram por ela
   function funilPct(d, simFn, field) {
