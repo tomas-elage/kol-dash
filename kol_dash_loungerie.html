@@ -78,6 +78,13 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .bloco-tooltip-row{display:flex;justify-content:space-between;gap:16px;font-size:11px;padding:2px 0;color:var(--text-muted)}
 .bloco-tooltip-row .lbl{color:var(--text-muted)}.bloco-tooltip-row .val{font-weight:600;color:var(--text)}
 .bloco-tooltip-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);margin-bottom:5px;border-bottom:1px solid var(--border);padding-bottom:4px}
+.blocos-detail{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+.blocos-detail-col{display:flex;flex-direction:column;gap:4px}
+.blocos-detail-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--text-dim);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blocos-detail-row{display:flex;justify-content:space-between;gap:6px;font-size:11px;padding:2px 0}
+.blocos-detail-row .lbl{color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blocos-detail-row .val{font-weight:600;flex-shrink:0}
+
 .bloco-item{text-align:center;flex:1}.bloco-circle{width:48px;height:48px;border-radius:50%;margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-size:18px}
 .bloco-name{font-size:10px;color:var(--text-muted);margin-bottom:1px}.bloco-pct{font-size:13px;font-weight:700}
 .c-good{color:var(--green)}.c-warn{color:var(--warn)}.c-bad{color:var(--bad)}
@@ -152,7 +159,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <div class="card"><div class="card-title">Métricas da Conversa</div><div class="metrics-grid"><div><div class="metric-label">Tempo Médio</div><div class="metric-val" id="m-tempo">—</div></div><div><div class="metric-label">Total Conversas</div><div class="metric-val" id="m-total">—</div></div></div><div class="fala-label">Palavras: Vendedor × Cliente</div><div class="fala-bar"><div class="v" id="fala-v" style="width:50%"></div><div class="c" id="fala-c" style="width:50%"></div></div><div class="fala-legend"><span><span class="dot" style="background:var(--blue)"></span>Vendedor <span id="fala-vp">—</span></span><span><span class="dot" style="background:var(--cyan)"></span>Cliente <span id="fala-cp">—</span></span></div></div>
   </div>
   <div class="row2">
-    <div class="card" style="overflow:visible"><div class="card-title">Aderência ao Playbook por Bloco</div><div class="card-sub">Aderência média do time em cada bloco</div><div class="blocos-arc" id="blocos-arc"></div><div style="text-align:center;margin-top:10px;font-size:10px;color:var(--text-dim)">% de aderência média em cada bloco do playbook</div></div>
+    <div class="card" style="overflow:visible"><div class="card-title">Aderência ao Playbook por Bloco</div><div class="card-sub">Aderência média do time em cada bloco</div><div class="blocos-arc" id="blocos-arc"></div><div class="blocos-detail" id="blocos-detail"></div><div style="text-align:center;margin-top:10px;font-size:10px;color:var(--text-dim)">% de aderência média em cada bloco do playbook</div></div>
     <div class="card"><div class="card-title">Funil do Atendimento</div><div class="card-sub">% de conversas que chegam até cada etapa</div><div class="funil-list" id="funil-list"></div></div>
   </div>
 </div>
@@ -658,6 +665,15 @@ function renderAll() {
     var cls = b.p>=70?"c-good":b.p>=40?"c-warn":"c-bad";
     var bg = b.p>=70?"rgba(74,222,128,.15)":b.p>=40?"rgba(251,146,60,.15)":"rgba(248,113,113,.15)";
     return "<div class=\"bloco-item\">"+tooltip+"<div class=\"bloco-circle\" style=\"background:"+bg+"\">"+b.icon+"</div><div class=\"bloco-name\">"+b.name+"</div><div class=\"bloco-pct "+cls+"\">"+b.p+"%</div></div>";
+  }).join("");
+
+  // Tabela de indicadores por bloco, sempre visível (antes só aparecia no hover)
+  document.getElementById("blocos-detail").innerHTML = blocos.map(function(b){
+    var rows = (b.breakdown && b.breakdown.length) ? b.breakdown.map(function(x){
+      var vc = x.p>=70?"c-good":x.p>=40?"c-warn":"c-bad";
+      return "<div class=\"blocos-detail-row\"><span class=\"lbl\">"+x.lbl+"</span><span class=\"val "+vc+"\">"+x.p+"%</span></div>";
+    }).join("") : "<div class=\"blocos-detail-row\"><span class=\"lbl\" style=\"color:var(--text-dim)\">Sem dados</span></div>";
+    return "<div class=\"blocos-detail-col\"><div class=\"blocos-detail-title\">"+b.icon+" "+b.name+"</div>"+rows+"</div>";
   }).join("");
 
   // Atualiza destaques com as conversas filtradas
