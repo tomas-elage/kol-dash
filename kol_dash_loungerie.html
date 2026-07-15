@@ -155,7 +155,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   <div class="row4" style="margin-bottom:12px">
     <div class="card"><div class="card-title">Ranking de Vendedores</div><div class="card-sub">Por índice de performance</div><div class="tbl-wrap"><table class="stbl" id="tbl-vend"><thead><tr><th onclick="sortTable('tbl-vend',0)">Pos<span class="sort-arrow" id="tbl-vend-0">↕</span></th><th onclick="sortTable('tbl-vend',1)">Vendedor<span class="sort-arrow" id="tbl-vend-1">↕</span></th><th onclick="sortTable('tbl-vend',2)" style="text-align:right">#Conv<span class="sort-arrow" id="tbl-vend-2">↕</span></th><th onclick="sortTable('tbl-vend',3)" style="text-align:right">Ader.<span class="sort-arrow" id="tbl-vend-3">↕</span></th><th onclick="sortTable('tbl-vend',4)" style="text-align:right">Conv.%<span class="sort-arrow" id="tbl-vend-4">↕</span></th></tr></thead><tbody id="tbl-vend-body"></tbody></table></div></div>
     <div class="card"><div class="card-title">Ranking de Lojas</div><div class="card-sub">Por conversão (%)</div><div class="tbl-wrap"><table class="stbl" id="tbl-lojas"><thead><tr><th onclick="sortTable('tbl-lojas',0)">Pos<span class="sort-arrow" id="tbl-lojas-0">↕</span></th><th onclick="sortTable('tbl-lojas',1)">Loja<span class="sort-arrow" id="tbl-lojas-1">↕</span></th><th onclick="sortTable('tbl-lojas',2)" style="text-align:right">#Conv<span class="sort-arrow" id="tbl-lojas-2">↕</span></th><th onclick="sortTable('tbl-lojas',3)" style="text-align:right">Ader.<span class="sort-arrow" id="tbl-lojas-3">↕</span></th><th onclick="sortTable('tbl-lojas',4)" style="text-align:right">Conv.%<span class="sort-arrow" id="tbl-lojas-4">↕</span></th></tr></thead><tbody id="tbl-lojas-body"></tbody></table></div></div>
-    <div class="card"><div class="card-title">Indicadores Mais Presentes</div><div class="card-sub">Cumpridos no maior número de conversas</div><div class="tbl-wrap" style="max-height:170px"><table class="stbl"><thead><tr><th>Indicador</th><th style="text-align:right">%</th><th style="text-align:right">Conv.%</th></tr></thead><tbody id="tbl-ind-body"></tbody></table></div></div>
+    <div class="card"><div class="card-title">Indicadores Mais Presentes</div><div class="card-sub">Cumpridos no maior número de conversas</div><div class="tbl-wrap" style="max-height:170px"><table class="stbl"><thead><tr><th onclick="sortTable('tbl-ind',0)">Indicador<span class="sort-arrow" id="tbl-ind-0">↕</span></th><th onclick="sortTable('tbl-ind',1)" style="text-align:right">%<span class="sort-arrow" id="tbl-ind-1">↕</span></th></tr></thead><tbody id="tbl-ind-body"></tbody></table></div></div>
     <div class="card"><div class="card-title">Métricas da Conversa</div><div class="metrics-grid"><div><div class="metric-label">Tempo Médio</div><div class="metric-val" id="m-tempo">—</div></div><div><div class="metric-label">Total Conversas</div><div class="metric-val" id="m-total">—</div></div></div><div class="fala-label">Palavras: Vendedor × Cliente</div><div class="fala-bar"><div class="v" id="fala-v" style="width:50%"></div><div class="c" id="fala-c" style="width:50%"></div></div><div class="fala-legend"><span><span class="dot" style="background:var(--blue)"></span>Vendedor <span id="fala-vp">—</span></span><span><span class="dot" style="background:var(--cyan)"></span>Cliente <span id="fala-cp">—</span></span></div></div>
   </div>
   <div class="row2">
@@ -370,7 +370,7 @@ function sortTable(tblId, col) {
   var key = tblId + "-" + col;
   var dir = sortState[key] === "asc" ? "desc" : "asc";
   sortState[key] = dir;
-  document.querySelectorAll("[id^=\"" + tblId + "-\"]").forEach(function(el){el.textContent="↕";el.classList.remove("on");});
+  document.querySelectorAll("span.sort-arrow[id^=\"" + tblId + "-\"]").forEach(function(el){el.textContent="↕";el.classList.remove("on");});
   var arrow = document.getElementById(tblId + "-" + col);
   if (arrow) { arrow.textContent = dir === "asc" ? "↑" : "↓"; arrow.classList.add("on"); }
   var tbody = document.getElementById(tblId + "-body");
@@ -540,14 +540,14 @@ function renderAll() {
     {f:"Nível de engajamento do vendedor",              sim:function(v){return isAltoMedio(v);}, lbS:"Engajou com o cliente",    lbN:"Não engajou"},
     {f:"Demonstrou o produto?",                        sim:isSim, lbS:"Demonstrou produto",            lbN:"Não demonstrou produto"},
     {f:"Vendedor se apresentou pelo nome?",             sim:isSim, lbS:"Vendedor se apresentou",       lbN:"Não se apresentou"},
-    {f:"Tentou upsell?",                               sim:isSim, lbS:"Fez up sell",                  lbN:"Não fez up sell"},
+    {f:"Tentou upsell?",                               sim:isSim, lbS:"Tentou upsell",              lbN:"Não tentou upsell"},
     {f:"Ofereceu café e/ou água?",                     sim:isSim, lbS:"Ofereceu café/água",            lbN:"Não ofereceu café/água"},
-    {f:"Quantas perguntas exploratórias feitas?",       sim:function(v){return parseFloat(v)>=1;},     lbS:"Fez perguntas exploratórias", lbN:"Não fez perguntas exploratórias"},
-    {f:"Demonstrou alternativas à objeção?",           sim:isSim, lbS:"Apresentou alternativas",      lbN:"Não apresentou alternativas"},
-    {f:"Tipo de abordagem",                            sim:isProativa, lbS:"Abordagem proativa",       lbN:"Cliente que abordou"},
+    {f:"Quantas perguntas exploratórias feitas?",       sim:function(v){return parseFloat(v)>=2;},     lbS:"Fez perguntas exploratórias (2 ou +)", lbN:"Não fez perguntas exploratórias (2 ou +)"},
+    {f:"Demonstrou alternativas à objeção?",           sim:isSim, lbS:"Apresentou alternativas à objeção",      lbN:"Não apresentou alternativas à objeção"},
+    {f:"Tipo de abordagem",                            sim:isProativa, lbS:"Abordagem proativa",       lbN:"Abordagem reativa"},
     {f:"Como foi o encerramento do vendedor?",         sim:isCordial, lbS:"Encerrou de forma cordial", lbN:"Encerrou de forma não cordial"},
     {f:"Fez sondagem para entender a necessidade?",    sim:isSim, lbS:"Sondou a necessidade",         lbN:"Não fez sondagem de necessidade"},
-    {f:"Tentou cross sell?",                           sim:isSim, lbS:"Fez cross sell",               lbN:"Não fez cross sell"},
+    {f:"Tentou cross sell?",                           sim:isSim, lbS:"Tentou cross-sell",            lbN:"Não tentou cross-sell"},
     {f:"Vendedor convidou o cliente a retornar?",      sim:isSim, lbS:"Convidou a retornar",          lbN:"Não convidou a retornar"},
     {f:"Perguntou o nome do cliente?",                 sim:isSim, lbS:"Perguntou o nome do cliente",  lbN:"Não perguntou o nome"},
   ];
@@ -581,9 +581,9 @@ function renderAll() {
     // Indicadores de Fechamento saem da análise de impacto: tendem a ser CONSEQUÊNCIA
     // da venda ter dado certo (encerramento mais caprichado quando já fechou), não causa —
     // incluir invertia a seta de causalidade.
-    var CAMPOS_FECHAMENTO = ["Como foi o encerramento do vendedor?", "Vendedor convidou o cliente a retornar?", "Vendedor falou do programa de fidelização?"];
-    var ehFechamento = CAMPOS_FECHAMENTO.indexOf(x.f) !== -1;
-    if (!ehFechamento && simConvPct !== null && naoConvPct !== null && simConvDen >= AMOSTRA_MINIMA && naoConvDen >= AMOSTRA_MINIMA) {
+    var CAMPOS_EXCLUIDOS_IMPACTO = ["Como foi o encerramento do vendedor?", "Vendedor convidou o cliente a retornar?", "Vendedor falou do programa de fidelização?", "Demonstrou o produto?"];
+    var ehExcluido = CAMPOS_EXCLUIDOS_IMPACTO.indexOf(x.f) !== -1;
+    if (!ehExcluido && simConvPct !== null && naoConvPct !== null && simConvDen >= AMOSTRA_MINIMA && naoConvDen >= AMOSTRA_MINIMA) {
       impactoPorCampo.push({
         campo: x.f, labelSim: x.lbS, labelNao: x.lbN,
         simConvPct: simConvPct, naoConvPct: naoConvPct,
@@ -594,8 +594,7 @@ function renderAll() {
   });
   ic.sort(function(a,b){return b.p-a.p;});
   document.getElementById("tbl-ind-body").innerHTML = ic.map(function(c){
-    var convCell = c.convPct===null ? "<span style=\"color:var(--text-dim)\">—</span>" : c.convPct+"%";
-    return "<tr><td>"+c.label+"</td><td class=\"num\" style=\"color:var(--cyan);font-weight:600\">"+c.p+"%</td><td class=\"num\">"+convCell+"</td></tr>";
+    return "<tr><td>"+c.label+"</td><td class=\"num\" style=\"color:var(--cyan);font-weight:600\">"+c.p+"%</td></tr>";
   }).join("");
 
   // Um indicador só aparece uma vez, em uma posição — impacto positivo e negativo
@@ -651,7 +650,7 @@ function renderAll() {
       tot++;
       if (campo === 'Tipo de abordagem') { if (isProativa(v)) sim++; }
       else if (campo === 'Cordialidade' || campo === 'Nível de engajamento do vendedor') { if (isAltoMedio(v)) sim++; }
-      else if (campo === 'Quantas perguntas exploratórias feitas?') { if (parseFloat(v) >= 1) sim++; }
+      else if (campo === 'Quantas perguntas exploratórias feitas?') { if (parseFloat(v) >= 2) sim++; }
       else if (campo === 'Como foi o encerramento do vendedor?') { if (isCordial(v)) sim++; }
       else { if (isSim(v)) sim++; }
     });
@@ -668,7 +667,7 @@ function renderAll() {
   var blocosDef = [
     {icon:'👋', name:'Abordagem',   campos:[
       {f:'_sempre1',             lbl:'Abordagem'},
-      {f:"Tipo de abordagem",       lbl:'Tipo de abordagem'},
+      {f:"Tipo de abordagem",       lbl:'Abordagem proativa'},
       {f:"Vendedor se apresentou pelo nome?",lbl:'Apresentação vendedor'},
       {f:"Perguntou o nome do cliente?",lbl:'Solicitou nome'},
       {f:"Ofereceu café e/ou água?",     lbl:'Oferta café/água'},
@@ -679,9 +678,9 @@ function renderAll() {
     ]},
     {icon:'🔄', name:'Condução',    campos:[
       {f:"Demonstrou o produto?",  lbl:'Demonstrou produto'},
-      {f:"Demonstrou alternativas à objeção?",lbl:'Alternativas à objeção'},
-      {f:"Tentou upsell?",              lbl:'Upsell'},
-      {f:"Tentou cross sell?",          lbl:'Cross-sell'},
+      {f:"Demonstrou alternativas à objeção?",lbl:'Apresentou alternativas à objeção'},
+      {f:"Tentou upsell?",              lbl:'Tentou upsell'},
+      {f:"Tentou cross sell?",          lbl:'Tentou cross-sell'},
     ]},
     {icon:'⭐', name:'Experiência', campos:[
       {f:"Cordialidade", lbl:'Cordialidade'},
