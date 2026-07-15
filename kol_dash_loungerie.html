@@ -169,7 +169,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <div class="card"><div class="card-title">Indicadores que Mais Impactam a Conversão</div><div class="card-sub">Conversão de quem fez vs. quem não fez o indicador — do maior impacto positivo ao maior negativo. Indicadores de Fechamento excluídos (tendem a ser consequência da venda, não causa).</div><div class="tbl-wrap"><table class="stbl"><thead><tr><th>Indicador</th><th style="text-align:right">Conv. fez</th><th style="text-align:right">Conv. não fez</th><th style="text-align:right">Impacto</th></tr></thead><tbody id="tbl-impacto-body"></tbody></table></div></div>
   </div>
   <div style="margin-top:12px">
-    <div class="card"><div class="card-title">Distribuição de Duração das Conversas</div><div class="card-sub">Quantidade de conversas por faixa de duração — blocos de 2 minutos</div><canvas id="chartDuracao" height="70"></canvas></div>
+    <div class="card"><div class="card-title">Distribuição de Duração das Conversas</div><div class="card-sub">Quantidade de conversas por faixa de duração — blocos de 3 minutos</div><canvas id="chartDuracao" height="70"></canvas></div>
   </div>
 </div>
 <div id="view-cl" style="display:none">
@@ -790,7 +790,7 @@ var duracaoChart = null;
 function updateDuracaoChart(data) {
   var el = document.getElementById("chartDuracao");
   if (!el) return;
-  var BIN = 2; // minutos por faixa
+  var BIN = 3; // minutos por faixa
   var totalB = {}, convB = {}, naoConvB = {};
   var maxBucket = 0;
   data.forEach(function(r){
