@@ -179,8 +179,21 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <div class="card"><div class="card-title">O que o Cliente Procurou?</div><div class="hbar-list" id="hbar-produto" style="margin-top:8px"></div></div>
   </div>
   <div class="row3b">
-    <div class="card"><div class="card-title">Objeções Levantadas</div><div class="obj-wrap" style="margin-top:8px"><table class="obj-tbl"><thead><tr><th>Objeção</th><th>#</th><th>% total</th></tr></thead><tbody id="tbl-obj-body"></tbody></table></div></div>
-    <div class="card" style="min-height:200px"><div class="card-title">Principais Motivos de Perda</div><div class="hbar-list" id="hbar-perda" style="margin-top:8px"></div></div>
+    <div class="card"><div class="card-title">Objeções Levantadas</div><div class="obj-wrap" style="margin-top:8px"><table class="obj-tbl"><thead><tr><th>Objeção</th><th>#</th><th>% total</th></tr></thead><tbody id="tbl-obj-body"></tbody></table></div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px">Itens procurados nessa objeção</div>
+        <select id="sel-obj-produto" onchange="window.renderObjProdutoList()" style="width:100%;background:var(--card,#1e2736);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px"></select>
+        <div class="hbar-list" id="hbar-obj-produto" style="margin-top:10px"></div>
+      </div>
+    </div>
+    <div class="card" style="min-height:200px">
+      <div class="card-title">Principais Motivos de Perda</div><div class="hbar-list" id="hbar-perda" style="margin-top:8px"></div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px">Itens procurados nesse motivo de perda</div>
+        <select id="sel-perda-produto" onchange="window.renderPerdaProdutoList()" style="width:100%;background:var(--card,#1e2736);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px"></select>
+        <div class="hbar-list" id="hbar-perda-produto" style="margin-top:10px"></div>
+      </div>
+    </div>
     <div class="card"><div class="card-title">Concorrência na Conversa</div><div class="card-sub" id="conc-sub"></div><div class="hbar-list" id="hbar-conc"></div></div>
   </div>
 </div>
@@ -757,12 +770,17 @@ function renderClienteView(data) {
   var PERFIS_COLORS = ["#22c55e","#f59e0b","#6366f1"];
   var perfilCount = {"Decidido":0,"Indeciso":0,"Pesquisador":0};
   var perfilConv  = {"Decidido":0,"Indeciso":0,"Pesquisador":0};
+  var perfilConvDen = {"Decidido":0,"Indeciso":0,"Pesquisador":0}; // só sim+não, exclui "não aplicável"
   data.forEach(function(r){
     var v = (r["perfil_cliente"]||"").trim();
     var vN = v.charAt(0).toUpperCase() + v.slice(1).toLowerCase();
     if (perfilCount[vN] !== undefined) {
       perfilCount[vN]++;
-      if (isSim(r["Conversa convertida em venda?"])) perfilConv[vN]++;
+      var cv = (r["Conversa convertida em venda?"]||"").trim().toLowerCase();
+      if (cv==="sim"||cv==="não"||cv==="nao") {
+        perfilConvDen[vN]++;
+        if (cv==="sim") perfilConv[vN]++;
+      }
     }
   });
   var perfilVals = PERFIS.map(function(p){ return perfilCount[p]; });
@@ -775,10 +793,10 @@ function renderClienteView(data) {
 
   // Perfil que Mais Converte — barras rankeadas por taxa de conversão
   var perfilTaxas = PERFIS
-    .filter(function(p){ return perfilCount[p] > 0; })
+    .filter(function(p){ return perfilConvDen[p] > 0; })
     .map(function(p,_){
       var idx = PERFIS.indexOf(p);
-      return { label: p, taxa: perfilConv[p]/perfilCount[p], conv: perfilConv[p], total: perfilCount[p], cor: PERFIS_COLORS[idx] };
+      return { label: p, taxa: perfilConv[p]/perfilConvDen[p], conv: perfilConv[p], total: perfilConvDen[p], cor: PERFIS_COLORS[idx] };
     })
     .sort(function(a,b){ return b.taxa - a.taxa; });
   if (perfilTaxas.length > 0) {
@@ -794,7 +812,6 @@ function renderClienteView(data) {
             "<div style='height:100%;width:"+barW+"%;background:"+item.cor+";border-radius:4px'></div>" +
           "</div>" +
           "<span style='font-size:13px;font-weight:600;color:"+item.cor+";min-width:36px;text-align:right'>"+pct+"%</span>" +
-          "<span style='font-size:11px;color:var(--text-muted);min-width:40px'>"+item.conv+"/"+item.total+"</span>" +
         "</div>";
       }).join("") +
       "</div>";
@@ -882,6 +899,45 @@ function renderClienteView(data) {
       return "<tr><td>"+e[0]+"</td><td style='text-align:right;color:var(--text-muted)'>"+e[1]+"</td><td style='text-align:right;color:var(--text-muted)'>"+pct(e[1],n)+"%</td></tr>";
     }).join("");
 
+  // Dropdown: itens procurados dado uma objeção selecionada
+  (function(){
+    var selEl = document.getElementById("sel-obj-produto");
+    if (!selEl) return;
+    var categorias = Object.entries(oa).sort(function(a,b){return b[1]-a[1];}).map(function(e){return e[0];});
+    if (categorias.length === 0) {
+      selEl.innerHTML = "<option value=''>Sem objeções registradas</option>";
+      document.getElementById("hbar-obj-produto").innerHTML = "";
+      window.renderObjProdutoList = function(){};
+      return;
+    }
+    selEl.innerHTML = categorias.map(function(c){ return "<option value=\""+c+"\">"+c+" ("+oa[c]+")</option>"; }).join("");
+
+    window.renderObjProdutoList = function(){
+      var val = document.getElementById("sel-obj-produto").value;
+      var rows = data.filter(function(r){
+        var raw = (r["Qual foi a objeção?"]||"").trim();
+        if (!raw) return false;
+        return raw.split(";").some(function(s){
+          if (isNaoAplicavel(s)) return false;
+          return dp(s.trim(),"objecao") === val;
+        });
+      });
+      var c = {};
+      rows.forEach(function(r){
+        var v = dp((r["Produto procurado"]||"").trim(), "produto");
+        if (!v || IGNORAR_PRODUTO.indexOf(v.toLowerCase()) !== -1) return;
+        c[v] = (c[v]||0) + 1;
+      });
+      var list = Object.entries(c).map(function(e){return {label:e[0],val:e[1]};}).sort(function(a,b){return b.val-a.val;});
+      if (list.length === 0) {
+        document.getElementById("hbar-obj-produto").innerHTML = "<p style='color:var(--text-dim);font-size:12px;text-align:center;padding:12px 0'>Sem produtos registrados para essa objeção</p>";
+      } else {
+        renderHBars("hbar-obj-produto", list, "var(--blue)");
+      }
+    };
+    window.renderObjProdutoList();
+  })();
+
   // Motivos de perda — coluna "Qual foi o motivo da não conversão?"
   (function(){
     var LABEL_PERDA = {
@@ -906,6 +962,43 @@ function renderClienteView(data) {
       renderHBars("hbar-perda", perdaData, "var(--bad)");
     } else {
       document.getElementById("hbar-perda").innerHTML = "<p style='color:var(--text-dim);font-size:14px;text-align:center'>Sem motivos de perda registrados</p>";
+    }
+
+    // Dropdown: itens procurados dado um motivo de perda selecionado
+    var selEl2 = document.getElementById("sel-perda-produto");
+    if (selEl2) {
+      var categoriasPerda = Object.entries(perdaCount).sort(function(a,b){return b[1]-a[1];}).map(function(e){return e[0];});
+      if (categoriasPerda.length === 0) {
+        selEl2.innerHTML = "<option value=''>Sem motivos registrados</option>";
+        document.getElementById("hbar-perda-produto").innerHTML = "";
+        window.renderPerdaProdutoList = function(){};
+      } else {
+        selEl2.innerHTML = categoriasPerda.map(function(c){ return "<option value=\""+c+"\">"+c+" ("+perdaCount[c]+")</option>"; }).join("");
+
+        window.renderPerdaProdutoList = function(){
+          var val = document.getElementById("sel-perda-produto").value;
+          var rows = data.filter(function(r){
+            if (!isNao(r["Conversa convertida em venda?"])) return false;
+            var v = (r["Qual foi o motivo da não conversão?"]||"").trim().toLowerCase();
+            if (isNaoAplicavel(v)) return false;
+            var label = LABEL_PERDA[v] || (v.charAt(0).toUpperCase()+v.slice(1));
+            return label === val;
+          });
+          var c = {};
+          rows.forEach(function(r){
+            var v = dp((r["Produto procurado"]||"").trim(), "produto");
+            if (!v || IGNORAR_PRODUTO.indexOf(v.toLowerCase()) !== -1) return;
+            c[v] = (c[v]||0) + 1;
+          });
+          var list = Object.entries(c).map(function(e){return {label:e[0],val:e[1]};}).sort(function(a,b){return b.val-a.val;});
+          if (list.length === 0) {
+            document.getElementById("hbar-perda-produto").innerHTML = "<p style='color:var(--text-dim);font-size:12px;text-align:center;padding:12px 0'>Sem produtos registrados para esse motivo</p>";
+          } else {
+            renderHBars("hbar-perda-produto", list, "var(--bad)");
+          }
+        };
+        window.renderPerdaProdutoList();
+      }
     }
   })();
 
