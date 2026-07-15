@@ -162,9 +162,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <div class="card" style="overflow:visible"><div class="card-title">Aderência ao Playbook por Bloco</div><div class="card-sub">Aderência média do time em cada bloco</div><div class="blocos-arc" id="blocos-arc"></div><div class="blocos-detail" id="blocos-detail"></div><div style="text-align:center;margin-top:10px;font-size:10px;color:var(--text-dim)">% de aderência média em cada bloco do playbook</div></div>
     <div class="card"><div class="card-title">Funil do Atendimento</div><div class="card-sub">% de conversas que chegam até cada etapa</div><div class="funil-list" id="funil-list"></div></div>
   </div>
-  <div class="row2" style="margin-top:12px">
-    <div class="card"><div class="card-title">Top 5 — Indicadores que Mais Impactam Positivamente a Conversão</div><div class="card-sub">Conversão de quem fez vs. quem não fez, mesma amostra</div><div class="tbl-wrap"><table class="stbl"><thead><tr><th>Indicador</th><th style="text-align:right">Conv. fez</th><th style="text-align:right">Conv. não fez</th><th style="text-align:right">Impacto</th></tr></thead><tbody id="tbl-impacto-pos-body"></tbody></table></div></div>
-    <div class="card"><div class="card-title">Top 5 — Indicadores que Mais Impactam Negativamente a Conversão</div><div class="card-sub">Conversão de quem fez vs. quem não fez, mesma amostra</div><div class="tbl-wrap"><table class="stbl"><thead><tr><th>Indicador</th><th style="text-align:right">Conv. fez</th><th style="text-align:right">Conv. não fez</th><th style="text-align:right">Impacto</th></tr></thead><tbody id="tbl-impacto-neg-body"></tbody></table></div></div>
+  <div style="margin-top:12px">
+    <div class="card"><div class="card-title">Indicadores que Mais Impactam a Conversão</div><div class="card-sub">Conversão de quem fez vs. quem não fez o indicador — do maior impacto positivo ao maior negativo. Indicadores de Fechamento excluídos (tendem a ser consequência da venda, não causa).</div><div class="tbl-wrap"><table class="stbl"><thead><tr><th>Indicador</th><th style="text-align:right">Conv. fez</th><th style="text-align:right">Conv. não fez</th><th style="text-align:right">Impacto</th></tr></thead><tbody id="tbl-impacto-body"></tbody></table></div></div>
   </div>
 </div>
 <div id="view-cl" style="display:none">
@@ -579,7 +578,12 @@ function renderAll() {
 
     // Amostra mínima pra considerar o impacto confiável (evita ruído de poucos casos)
     var AMOSTRA_MINIMA = 5;
-    if (simConvPct !== null && naoConvPct !== null && simConvDen >= AMOSTRA_MINIMA && naoConvDen >= AMOSTRA_MINIMA) {
+    // Indicadores de Fechamento saem da análise de impacto: tendem a ser CONSEQUÊNCIA
+    // da venda ter dado certo (encerramento mais caprichado quando já fechou), não causa —
+    // incluir invertia a seta de causalidade.
+    var CAMPOS_FECHAMENTO = ["Como foi o encerramento do vendedor?", "Vendedor convidou o cliente a retornar?", "Vendedor falou do programa de fidelização?"];
+    var ehFechamento = CAMPOS_FECHAMENTO.indexOf(x.f) !== -1;
+    if (!ehFechamento && simConvPct !== null && naoConvPct !== null && simConvDen >= AMOSTRA_MINIMA && naoConvDen >= AMOSTRA_MINIMA) {
       impactoPorCampo.push({
         campo: x.f, labelSim: x.lbS, labelNao: x.lbN,
         simConvPct: simConvPct, naoConvPct: naoConvPct,
@@ -594,30 +598,25 @@ function renderAll() {
     return "<tr><td>"+c.label+"</td><td class=\"num\" style=\"color:var(--cyan);font-weight:600\">"+c.p+"%</td><td class=\"num\">"+convCell+"</td></tr>";
   }).join("");
 
-  // Top 5 indicadores que mais IMPACTAM POSITIVAMENTE a conversão
-  // (maior lift = fazer isso correlaciona com mais conversão) — um por campo, nunca as 2 direções
+  // Um indicador só aparece uma vez, em uma posição — impacto positivo e negativo
+  // são as duas pontas da MESMA lista ordenada, não tabelas separadas.
   var impactoOrdenado = impactoPorCampo.slice().sort(function(a,b){return b.lift-a.lift;});
-  var top5Positivo = impactoOrdenado.filter(function(x){return x.lift>0;}).slice(0,5);
-  var top5Negativo = impactoOrdenado.filter(function(x){return x.lift<0;}).sort(function(a,b){return a.lift-b.lift;}).slice(0,5);
 
-  function renderImpactoTable(elId, lista, positivo) {
-    var el = document.getElementById(elId);
-    if (!el) return;
-    if (lista.length===0) {
-      el.innerHTML = "<p style=\"color:var(--text-dim);font-size:13px;text-align:center;padding:20px 0\">Amostra insuficiente pra calcular impacto</p>";
-      return;
+  var elImpacto = document.getElementById("tbl-impacto-body");
+  if (elImpacto) {
+    if (impactoOrdenado.length===0) {
+      elImpacto.innerHTML = "<p style=\"color:var(--text-dim);font-size:13px;text-align:center;padding:20px 0\">Amostra insuficiente pra calcular impacto</p>";
+    } else {
+      elImpacto.innerHTML = impactoOrdenado.map(function(x){
+        var sinal = x.lift>0 ? "+" : "";
+        var cor = x.lift>0 ? "var(--good, #22c55e)" : (x.lift<0 ? "var(--bad, #ef4444)" : "var(--text-dim)");
+        return "<tr><td title=\""+x.simConvDen+" fez / "+x.naoConvDen+" não fez\">"+x.labelSim+"</td>" +
+          "<td class=\"num\">"+x.simConvPct+"%</td>" +
+          "<td class=\"num\">"+x.naoConvPct+"%</td>" +
+          "<td class=\"num\" style=\"color:"+cor+";font-weight:700\">"+sinal+x.lift+"pp</td></tr>";
+      }).join("");
     }
-    el.innerHTML = lista.map(function(x){
-      var sinal = x.lift>0 ? "+" : "";
-      var cor = positivo ? "var(--good, #22c55e)" : "var(--bad, #ef4444)";
-      return "<tr><td title=\""+x.simConvDen+" fez / "+x.naoConvDen+" não fez\">"+x.labelSim+"</td>" +
-        "<td class=\"num\">"+x.simConvPct+"%</td>" +
-        "<td class=\"num\">"+x.naoConvPct+"%</td>" +
-        "<td class=\"num\" style=\"color:"+cor+";font-weight:700\">"+sinal+x.lift+"pp</td></tr>";
-    }).join("");
   }
-  renderImpactoTable("tbl-impacto-pos-body", top5Positivo, true);
-  renderImpactoTable("tbl-impacto-neg-body", top5Negativo, false);
 
   // Funil processual: cada etapa é independente, mostra % de conversas que passaram por ela
   function funilPct(d, simFn, field) {
