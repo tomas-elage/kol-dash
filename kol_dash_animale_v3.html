@@ -7,6 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <style>:root{--bg:#0d1117;--bg-card:#161b22;--border:#2a3444;--text:#e6edf3;--text-muted:#7d8fa3;--text-dim:#4a5568;--blue:#3b82f6;--cyan:#06b6d4;--green:#22c55e;--warn:#f59e0b;--bad:#ef4444;--orange:#fb923c;}
+[data-theme="light"]{--bg:#f4f6f9;--bg-card:#ffffff;--border:#dde3ea;--text:#1a202c;--text-muted:#5b6b7f;--text-dim:#94a3b8;}
+.theme-toggle{background:transparent;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;font-size:13px;border-radius:6px;padding:5px 9px;line-height:1}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:13px}
 #loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px}
@@ -24,15 +26,35 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .filter-chip{display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--text-muted);cursor:pointer;position:relative;white-space:nowrap}
 .filter-chip:hover{border-color:var(--blue);color:var(--text)}
 .filter-chip .badge{background:var(--blue);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;font-weight:600}
-.dropdown{position:absolute;top:calc(100% + 6px);left:0;min-width:180px;background:#1e2736;border:1px solid var(--border);border-radius:8px;z-index:200;padding:6px 0;box-shadow:0 8px 24px rgba(0,0,0,.4);display:none}
+.dropdown{position:absolute;top:calc(100% + 6px);left:0;min-width:180px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;z-index:200;padding:6px 0;box-shadow:0 8px 24px rgba(0,0,0,.4);display:none}
 .dropdown.open{display:block}
 .dropdown label{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12px;color:var(--text-muted);cursor:pointer}
 .dropdown label:hover{background:rgba(255,255,255,.05);color:var(--text)}
+[data-theme="light"] .dropdown label:hover{background:rgba(0,0,0,.05)}
 .dropdown label input{accent-color:var(--cyan)}
-.dropdown-date{min-width:220px;padding:10px 14px}
-.dropdown-date label{display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px}
-.dropdown-date input[type=date]{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:5px 8px;font-size:12px;margin-bottom:8px}
-.dropdown-date button{width:100%;background:var(--blue);border:none;border-radius:5px;color:#fff;padding:6px;font-size:12px;cursor:pointer}
+.dropdown-date{width:270px;padding:14px;box-sizing:border-box}
+.date-presets{display:flex;gap:6px;margin-bottom:12px}
+.date-preset-btn{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:14px;color:var(--text-muted);font-size:11px;padding:5px 0;cursor:pointer}
+.date-preset-btn.active{background:var(--cyan);color:#04202a;border-color:var(--cyan);font-weight:700}
+.date-cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:13px;font-weight:600;color:var(--text)}
+.date-cal-header button{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:2px 10px;line-height:1}
+.date-cal-header button:hover{color:var(--text)}
+.date-cal-dows{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px}
+.date-cal-dows span{font-size:10px;color:var(--text-dim);text-align:center;text-transform:uppercase}
+.date-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:12px}
+.date-cal-day{font-size:12px;text-align:center;padding:6px 0;border-radius:6px;cursor:pointer;color:var(--text)}
+.date-cal-day:hover:not(.muted){background:var(--border)}
+.date-cal-day.muted{color:var(--text-dim);cursor:default;opacity:.4}
+.date-cal-day.in-range{background:rgba(6,182,212,.18);border-radius:0}
+.date-cal-day.range-start{border-radius:6px 0 0 6px}
+.date-cal-day.range-end{border-radius:0 6px 6px 0}
+.date-cal-day.range-start,.date-cal-day.range-end{background:var(--cyan);color:#04202a;font-weight:700}
+.date-cal-footer{display:flex;align-items:center;gap:8px}
+#cal-range-label{font-size:11px;color:var(--text-dim);flex:1}
+.date-apply-btn{background:var(--blue);border:none;border-radius:6px;color:#fff;padding:6px 16px;font-size:12px;cursor:pointer;flex-shrink:0}
+.dd-clear-btn{background:none;border:none;color:var(--blue);font-size:11px;cursor:pointer;padding:0;flex-shrink:0;white-space:nowrap}
+.dd-clear-btn:hover{text-decoration:underline}
+.dd-clear-row{padding:2px 14px 8px;border-bottom:1px solid var(--border);margin-bottom:4px}
 .nav-right{margin-left:auto;display:flex;align-items:center;gap:8px}
 .btn-clear{background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:12px}
 .btn-export{display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--text-muted);text-decoration:none}
@@ -76,8 +98,15 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .bloco-item:hover .bloco-tooltip{display:block}
 .bloco-tooltip::before{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-bottom-color:#1e2736}
 .bloco-tooltip-row{display:flex;justify-content:space-between;gap:16px;font-size:11px;padding:2px 0;color:var(--text-muted)}
-.bloco-tooltip-row .lbl{color:var(--text-muted)}.bloco-tooltip-row .val{font-weight:600;color:var(--text)}
-.bloco-tooltip-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);margin-bottom:5px;border-bottom:1px solid var(--border);padding-bottom:4px}
+.bloco-tooltip-row .lbl{color:#94a3b8}.bloco-tooltip-row .val{font-weight:600;color:#e6edf3}
+.bloco-tooltip-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#7d8fa3;margin-bottom:5px;border-bottom:1px solid #2a3444;padding-bottom:4px}
+.blocos-detail{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+.blocos-detail-col{display:flex;flex-direction:column;gap:4px}
+.blocos-detail-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--text-dim);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blocos-detail-row{display:flex;justify-content:space-between;gap:6px;font-size:11px;padding:2px 0}
+.blocos-detail-row .lbl{color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blocos-detail-row .val{font-weight:600;flex-shrink:0}
+
 .bloco-item{text-align:center;flex:1}.bloco-circle{width:48px;height:48px;border-radius:50%;margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-size:18px}
 .bloco-name{font-size:10px;color:var(--text-muted);margin-bottom:1px}.bloco-pct{font-size:13px;font-weight:700}
 .c-good{color:var(--green)}.c-warn{color:var(--warn)}.c-bad{color:var(--bad)}
@@ -131,8 +160,31 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   <div class="filter-chip" id="chip-vend" onclick="toggleDD('dd-vend',event)">VENDEDORES <span id="vend-badge" class="badge" style="display:none">0</span> ▾<div class="dropdown" id="dd-vend"></div></div>
   <div class="filter-chip" onclick="toggleDD('dd-conv',event)">CONVERSAS ▾<div class="dropdown" id="dd-conv" style="min-width:210px"><label><input type="radio" name="conv_filter" value="aprovadas" onchange="applyFilters()"> Apenas auditadas</label><label><input type="radio" name="conv_filter" value="todas" checked onchange="applyFilters()"> Auditadas + pendentes</label></div></div>
   <div class="nav-right">
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Alternar modo claro/escuro">🌙</button>
     <button class="btn-clear" onclick="clearFilters()">limpar filtros</button>
-    <div class="filter-chip" onclick="toggleDD('dd-date',event)">📅 <span id="date-label">—</span><div class="dropdown dropdown-date" id="dd-date" onclick="event.stopPropagation()"><label>De</label><input type="date" id="date-from" onchange="applyFilters()"><label>Até</label><input type="date" id="date-to" onchange="applyFilters()"><button onclick="applyFilters();closeAllDD()">Aplicar</button></div></div>
+    <div class="filter-chip" onclick="toggleDD('dd-date',event)">📅 <span id="date-label">—</span><div class="dropdown dropdown-date" id="dd-date" onclick="event.stopPropagation()">
+  <input type="date" id="date-from" style="display:none">
+  <input type="date" id="date-to" style="display:none">
+  <div class="date-presets">
+    <button type="button" class="date-preset-btn" id="preset-7" onclick="setDatePreset(7)">7 dias</button>
+    <button type="button" class="date-preset-btn" id="preset-30" onclick="setDatePreset(30)">30 dias</button>
+    <button type="button" class="date-preset-btn" id="preset-90" onclick="setDatePreset(90)">90 dias</button>
+  </div>
+  <div class="date-cal-header">
+    <button type="button" onclick="calMonthDelta(-1)">‹</button>
+    <span id="cal-month-label"></span>
+    <button type="button" onclick="calMonthDelta(1)">›</button>
+  </div>
+  <div class="date-cal-dows">
+    <span>dom</span><span>seg</span><span>ter</span><span>qua</span><span>qui</span><span>sex</span><span>sab</span>
+  </div>
+  <div class="date-cal-grid" id="cal-grid"></div>
+  <div class="date-cal-footer">
+    <button type="button" class="dd-clear-btn" onclick="clearDateFilter()">Limpar</button>
+    <span id="cal-range-label">Selecione o período</span>
+    <button type="button" class="date-apply-btn" onclick="applyCalendarRange()">Aplicar</button>
+  </div>
+</div></div>
     <span class="last-update" id="last-update"></span>
     <a class="btn-export" href="https://docs.google.com/spreadsheets/d/1_B39tmwDH6p4KS29qI4xxfbKzDLyIVNW2qACIzmrwtA" target="_blank">↓ Dados</a>
   </div>
@@ -148,12 +200,18 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   <div class="row4" style="margin-bottom:12px">
     <div class="card"><div class="card-title">Ranking de Vendedores</div><div class="card-sub">Por índice de performance</div><div class="tbl-wrap"><table class="stbl" id="tbl-vend"><thead><tr><th onclick="sortTable('tbl-vend',0)">Pos<span class="sort-arrow" id="tbl-vend-0">↕</span></th><th onclick="sortTable('tbl-vend',1)">Vendedor<span class="sort-arrow" id="tbl-vend-1">↕</span></th><th onclick="sortTable('tbl-vend',2)" style="text-align:right">#Conv<span class="sort-arrow" id="tbl-vend-2">↕</span></th><th onclick="sortTable('tbl-vend',3)" style="text-align:right">Ader.<span class="sort-arrow" id="tbl-vend-3">↕</span></th><th onclick="sortTable('tbl-vend',4)" style="text-align:right">Conv.%<span class="sort-arrow" id="tbl-vend-4">↕</span></th></tr></thead><tbody id="tbl-vend-body"></tbody></table></div></div>
     <div class="card"><div class="card-title">Ranking de Lojas</div><div class="card-sub">Por conversão (%)</div><div class="tbl-wrap"><table class="stbl" id="tbl-lojas"><thead><tr><th onclick="sortTable('tbl-lojas',0)">Pos<span class="sort-arrow" id="tbl-lojas-0">↕</span></th><th onclick="sortTable('tbl-lojas',1)">Loja<span class="sort-arrow" id="tbl-lojas-1">↕</span></th><th onclick="sortTable('tbl-lojas',2)" style="text-align:right">#Conv<span class="sort-arrow" id="tbl-lojas-2">↕</span></th><th onclick="sortTable('tbl-lojas',3)" style="text-align:right">Ader.<span class="sort-arrow" id="tbl-lojas-3">↕</span></th><th onclick="sortTable('tbl-lojas',4)" style="text-align:right">Conv.%<span class="sort-arrow" id="tbl-lojas-4">↕</span></th></tr></thead><tbody id="tbl-lojas-body"></tbody></table></div></div>
-    <div class="card"><div class="card-title">Indicadores Mais Presentes</div><div class="card-sub">Cumpridos no maior número de conversas</div><div class="tbl-wrap" style="max-height:170px"><table class="stbl"><thead><tr><th>Indicador</th><th style="text-align:right">%</th></tr></thead><tbody id="tbl-ind-body"></tbody></table></div></div>
+    <div class="card"><div class="card-title">Indicadores Mais Presentes</div><div class="card-sub">Cumpridos no maior número de conversas</div><div class="tbl-wrap" style="max-height:170px"><table class="stbl"><thead><tr><th onclick="sortTable('tbl-ind',0)">Indicador<span class="sort-arrow" id="tbl-ind-0">↕</span></th><th onclick="sortTable('tbl-ind',1)" style="text-align:right">%<span class="sort-arrow" id="tbl-ind-1">↕</span></th></tr></thead><tbody id="tbl-ind-body"></tbody></table></div></div>
     <div class="card"><div class="card-title">Métricas da Conversa</div><div class="metrics-grid"><div><div class="metric-label">Tempo Médio</div><div class="metric-val" id="m-tempo">—</div></div><div><div class="metric-label">Total Conversas</div><div class="metric-val" id="m-total">—</div></div></div><div class="fala-label">Palavras: Vendedor × Cliente</div><div class="fala-bar"><div class="v" id="fala-v" style="width:50%"></div><div class="c" id="fala-c" style="width:50%"></div></div><div class="fala-legend"><span><span class="dot" style="background:var(--blue)"></span>Vendedor <span id="fala-vp">—</span></span><span><span class="dot" style="background:var(--cyan)"></span>Cliente <span id="fala-cp">—</span></span></div></div>
   </div>
   <div class="row2">
-    <div class="card" style="overflow:visible"><div class="card-title">Aderência ao Playbook por Bloco</div><div class="card-sub">Aderência média do time em cada bloco</div><div class="blocos-arc" id="blocos-arc"></div><div style="text-align:center;margin-top:10px;font-size:10px;color:var(--text-dim)">% de aderência média em cada bloco do playbook</div></div>
+    <div class="card" style="overflow:visible"><div class="card-title">Aderência ao Playbook por Bloco</div><div class="card-sub">Aderência média do time em cada bloco</div><div class="blocos-arc" id="blocos-arc"></div><div class="blocos-detail" id="blocos-detail"></div><div style="text-align:center;margin-top:10px;font-size:10px;color:var(--text-dim)">% de aderência média em cada bloco do playbook</div></div>
     <div class="card"><div class="card-title">Funil do Atendimento</div><div class="card-sub">% de conversas que chegam até cada etapa</div><div class="funil-list" id="funil-list"></div></div>
+  </div>
+  <div style="margin-top:12px">
+    <div class="card"><div class="card-title">Indicadores que Mais Impactam a Conversão</div><div class="card-sub">Conversão de quem fez vs. quem não fez o indicador — do maior impacto positivo ao maior negativo. Indicadores de Fechamento excluídos (tendem a ser consequência da venda, não causa).</div><div class="tbl-wrap"><table class="stbl"><thead><tr><th>Indicador</th><th style="text-align:right">Conv. fez</th><th style="text-align:right">Conv. não fez</th><th style="text-align:right">Impacto</th></tr></thead><tbody id="tbl-impacto-body"></tbody></table></div></div>
+  </div>
+  <div style="margin-top:12px">
+    <div class="card"><div class="card-title">Distribuição de Duração das Conversas</div><div class="card-sub">Quantidade de conversas por faixa de duração — blocos de 3 minutos</div><canvas id="chartDuracao" height="70"></canvas></div>
   </div>
 </div>
 <div id="view-cl" style="display:none">
@@ -169,8 +227,21 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <div class="card"><div class="card-title">O que o Cliente Procurou?</div><div class="hbar-list" id="hbar-produto" style="margin-top:8px"></div></div>
   </div>
   <div class="row3b">
-    <div class="card"><div class="card-title">Objeções Levantadas</div><div class="obj-wrap" style="margin-top:8px"><table class="obj-tbl"><thead><tr><th>Objeção</th><th>#</th><th>% total</th></tr></thead><tbody id="tbl-obj-body"></tbody></table></div></div>
-    <div class="card" style="min-height:200px"><div class="card-title">Principais Motivos de Perda</div><div class="hbar-list" id="hbar-perda" style="margin-top:8px"></div></div>
+    <div class="card"><div class="card-title">Objeções Levantadas</div><div class="obj-wrap" style="margin-top:8px"><table class="obj-tbl"><thead><tr><th>Objeção</th><th>#</th><th>% total</th></tr></thead><tbody id="tbl-obj-body"></tbody></table></div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px">Itens procurados nessa objeção</div>
+        <select id="sel-obj-produto" onchange="window.renderObjProdutoList()" style="width:100%;background:var(--bg-card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px"></select>
+        <div class="hbar-list" id="hbar-obj-produto" style="margin-top:10px"></div>
+      </div>
+    </div>
+    <div class="card" style="min-height:200px">
+      <div class="card-title">Principais Motivos de Perda</div><div class="hbar-list" id="hbar-perda" style="margin-top:8px"></div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px">Itens procurados nesse motivo de perda</div>
+        <select id="sel-perda-produto" onchange="window.renderPerdaProdutoList()" style="width:100%;background:var(--bg-card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px"></select>
+        <div class="hbar-list" id="hbar-perda-produto" style="margin-top:10px"></div>
+      </div>
+    </div>
     <div class="card"><div class="card-title">Concorrência na Conversa</div><div class="card-sub" id="conc-sub"></div><div class="hbar-list" id="hbar-conc"></div></div>
   </div>
 </div>
@@ -241,6 +312,34 @@ function parseDate(s) {
   return new Date(d[2] + "-" + d[1] + "-" + d[0] + "T" + (parts[1] || "00:00:00"));
 }
 
+function applyTheme(theme) {
+  if (theme === "light") {
+    document.body.setAttribute("data-theme", "light");
+    var btn = document.getElementById("theme-toggle");
+    if (btn) btn.textContent = "☀️";
+  } else {
+    document.body.removeAttribute("data-theme");
+    var btn2 = document.getElementById("theme-toggle");
+    if (btn2) btn2.textContent = "🌙";
+  }
+}
+function toggleTheme() {
+  var atual = document.body.getAttribute("data-theme") === "light" ? "light" : "dark";
+  var novo = atual === "light" ? "dark" : "light";
+  applyTheme(novo);
+  try { localStorage.setItem("kol-theme", novo); } catch(e) {}
+  if (typeof FILTERED !== "undefined" && FILTERED.length) {
+    if (typeof updateDuracaoChart === "function") updateDuracaoChart(FILTERED);
+    if (document.getElementById("blocos-arc") && typeof renderAll === "function") renderAll();
+  }
+}
+(function(){
+  try {
+    var salvo = localStorage.getItem("kol-theme");
+    if (salvo === "light") applyTheme("light");
+  } catch(e) {}
+})();
+
 function parseDuration(s) {
   if (!s) return 0;
   var m = s.match(/(\d+)m\s*(\d+)s/);
@@ -308,6 +407,7 @@ function clearFilters() {
   document.getElementById("date-from").value = "";
   document.getElementById("date-to").value = "";
   document.getElementById("date-label").textContent = "Todas as datas";
+  resetCalendarState();
   document.getElementById("lojas-badge").style.display = "none";
   document.getElementById("vend-badge").style.display = "none";
   applyFilters();
@@ -329,10 +429,134 @@ function toggleDD(id, e) {
   var dd = document.getElementById(id);
   var was = dd.classList.contains("open");
   closeAllDD();
-  if (!was) dd.classList.add("open");
+  if (!was) {
+    dd.classList.add("open");
+    if (id === "dd-date") renderCalendarGrid();
+  }
 }
 function closeAllDD() { document.querySelectorAll(".dropdown.open").forEach(function(d){d.classList.remove("open");}); }
 document.addEventListener("click", closeAllDD);
+
+// ── Calendário de datas ──────────────────────────────────────────────────
+var calViewMonth = new Date().getMonth();
+var calViewYear = new Date().getFullYear();
+var calRangeStart = null, calRangeEnd = null; // objetos Date, ou null
+
+function toISODate(d) {
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function fmtCalLabel(d) { return d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"}); }
+
+function calMonthDelta(n) {
+  calViewMonth += n;
+  if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; }
+  if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
+  renderCalendarGrid();
+}
+
+function setDatePreset(dias) {
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var inicio = new Date(hoje); inicio.setDate(inicio.getDate() - (dias - 1));
+  calRangeStart = inicio; calRangeEnd = hoje;
+  calViewMonth = hoje.getMonth(); calViewYear = hoje.getFullYear();
+  document.querySelectorAll(".date-preset-btn").forEach(function(b){b.classList.remove("active");});
+  var btn = document.getElementById("preset-" + dias);
+  if (btn) btn.classList.add("active");
+  renderCalendarGrid();
+}
+
+function calDayClick(y, m, d) {
+  var clicked = new Date(y, m, d);
+  document.querySelectorAll(".date-preset-btn").forEach(function(b){b.classList.remove("active");});
+  if (!calRangeStart || (calRangeStart && calRangeEnd)) {
+    // Começa nova seleção
+    calRangeStart = clicked; calRangeEnd = null;
+  } else if (clicked < calRangeStart) {
+    // Clicou antes do início -> vira o novo início
+    calRangeEnd = calRangeStart; calRangeStart = clicked;
+  } else {
+    calRangeEnd = clicked;
+  }
+  renderCalendarGrid();
+}
+
+function renderCalendarGrid() {
+  var label = document.getElementById("cal-month-label");
+  if (!label) return; // dropdown ainda não existe nesse momento
+  var MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  label.textContent = MESES[calViewMonth] + " " + calViewYear;
+
+  var primeiroDia = new Date(calViewYear, calViewMonth, 1);
+  var startWeekday = primeiroDia.getDay();
+  var diasNoMes = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+  var diasNoMesAnterior = new Date(calViewYear, calViewMonth, 0).getDate();
+
+  var celulas = [];
+  for (var i = 0; i < startWeekday; i++) {
+    celulas.push({ dia: diasNoMesAnterior - startWeekday + 1 + i, muted: true, y: calViewMonth===0?calViewYear-1:calViewYear, m: calViewMonth===0?11:calViewMonth-1 });
+  }
+  for (var d = 1; d <= diasNoMes; d++) {
+    celulas.push({ dia: d, muted: false, y: calViewYear, m: calViewMonth });
+  }
+  while (celulas.length % 7 !== 0 || celulas.length < 42) {
+    var last = celulas[celulas.length-1];
+    var prox = new Date(last.y, last.m, last.dia + 1);
+    celulas.push({ dia: prox.getDate(), muted: true, y: prox.getFullYear(), m: prox.getMonth() });
+    if (celulas.length >= 42) break;
+  }
+
+  document.getElementById("cal-grid").innerHTML = celulas.map(function(c){
+    var thisDate = new Date(c.y, c.m, c.dia);
+    var classes = ["date-cal-day"];
+    if (c.muted) classes.push("muted");
+    if (calRangeStart && !c.muted) {
+      var s = calRangeStart, e = calRangeEnd || calRangeStart;
+      if (thisDate.getTime() === s.getTime() && thisDate.getTime() === e.getTime()) classes.push("range-start","range-end");
+      else if (thisDate.getTime() === s.getTime()) classes.push("range-start");
+      else if (thisDate.getTime() === e.getTime()) classes.push("range-end");
+      else if (thisDate > s && thisDate < e) classes.push("in-range");
+    }
+    var onclick = c.muted ? "" : ("onclick=\"calDayClick(" + c.y + "," + c.m + "," + c.dia + ")\"");
+    return "<div class=\"" + classes.join(" ") + "\" " + onclick + ">" + c.dia + "</div>";
+  }).join("");
+
+  var rangeLabel = document.getElementById("cal-range-label");
+  if (calRangeStart && calRangeEnd) {
+    rangeLabel.textContent = fmtCalLabel(calRangeStart) + " – " + fmtCalLabel(calRangeEnd);
+  } else if (calRangeStart) {
+    rangeLabel.textContent = fmtCalLabel(calRangeStart) + " – selecione o fim";
+  } else {
+    rangeLabel.textContent = "Selecione o período";
+  }
+}
+
+function clearDateFilter() {
+  document.getElementById("date-from").value = "";
+  document.getElementById("date-to").value = "";
+  resetCalendarState();
+  renderCalendarGrid();
+  applyFilters();
+  closeAllDD();
+}
+
+function applyCalendarRange() {
+  if (calRangeStart) {
+    document.getElementById("date-from").value = toISODate(calRangeStart);
+    document.getElementById("date-to").value = toISODate(calRangeEnd || calRangeStart);
+  } else {
+    document.getElementById("date-from").value = "";
+    document.getElementById("date-to").value = "";
+  }
+  applyFilters();
+  closeAllDD();
+}
+
+function resetCalendarState() {
+  calRangeStart = null; calRangeEnd = null;
+  var hoje = new Date();
+  calViewMonth = hoje.getMonth(); calViewYear = hoje.getFullYear();
+  document.querySelectorAll(".date-preset-btn").forEach(function(b){b.classList.remove("active");});
+}
 
 function updateFilter(type) {
   var id = type === "lojas" ? "dd-lojas" : "dd-vend";
@@ -344,15 +568,32 @@ function updateFilter(type) {
   applyFilters();
 }
 
+function clearLojasFilter() {
+  document.querySelectorAll("#dd-lojas input:checked").forEach(function(i){i.checked=false;});
+  filters.lojas = [];
+  document.getElementById("lojas-badge").style.display = "none";
+  applyFilters();
+}
+function clearVendedoresFilter() {
+  document.querySelectorAll("#dd-vend input:checked").forEach(function(i){i.checked=false;});
+  filters.vendedores = [];
+  document.getElementById("vend-badge").style.display = "none";
+  applyFilters();
+}
+
 function buildDropdowns(data) {
   var lojas = Array.from(new Set(data.map(function(r){return r.loja;}).filter(Boolean))).sort();
   var vends = Array.from(new Set(data.map(function(r){return r.vendedor;}).filter(Boolean))).sort();
-  document.getElementById("dd-lojas").innerHTML = lojas.map(function(l) {
-    return "<label><input type=\"checkbox\" value=\"" + l + "\" onchange=\"updateFilter('lojas')\"> " + l + "</label>";
-  }).join("");
-  document.getElementById("dd-vend").innerHTML = vends.map(function(v) {
-    return "<label><input type=\"checkbox\" value=\"" + v + "\" onchange=\"updateFilter('vendedores')\"> " + v + "</label>";
-  }).join("");
+  document.getElementById("dd-lojas").innerHTML =
+    "<div class=\"dd-clear-row\"><button type=\"button\" class=\"dd-clear-btn\" onclick=\"clearLojasFilter()\">Limpar seleção</button></div>" +
+    lojas.map(function(l) {
+      return "<label><input type=\"checkbox\" value=\"" + l + "\" onchange=\"updateFilter('lojas')\"> " + l + "</label>";
+    }).join("");
+  document.getElementById("dd-vend").innerHTML =
+    "<div class=\"dd-clear-row\"><button type=\"button\" class=\"dd-clear-btn\" onclick=\"clearVendedoresFilter()\">Limpar seleção</button></div>" +
+    vends.map(function(v) {
+      return "<label><input type=\"checkbox\" value=\"" + v + "\" onchange=\"updateFilter('vendedores')\"> " + v + "</label>";
+    }).join("");
 }
 
 var sortState = {};
@@ -360,7 +601,7 @@ function sortTable(tblId, col) {
   var key = tblId + "-" + col;
   var dir = sortState[key] === "asc" ? "desc" : "asc";
   sortState[key] = dir;
-  document.querySelectorAll("[id^=\"" + tblId + "-\"]").forEach(function(el){el.textContent="↕";el.classList.remove("on");});
+  document.querySelectorAll("span.sort-arrow[id^=\"" + tblId + "-\"]").forEach(function(el){el.textContent="↕";el.classList.remove("on");});
   var arrow = document.getElementById(tblId + "-" + col);
   if (arrow) { arrow.textContent = dir === "asc" ? "↑" : "↓"; arrow.classList.add("on"); }
   var tbody = document.getElementById(tblId + "-body");
@@ -530,34 +771,82 @@ function renderAll() {
     {f:"Nível de engajamento do vendedor",              sim:function(v){return isAltoMedio(v);}, lbS:"Engajou com o cliente",    lbN:"Não engajou"},
     {f:"Demonstrou o produto?",                        sim:isSim, lbS:"Demonstrou produto",            lbN:"Não demonstrou produto"},
     {f:"Vendedor se apresentou pelo nome?",             sim:isSim, lbS:"Vendedor se apresentou",       lbN:"Não se apresentou"},
-    {f:"Tentou upsell?",                               sim:isSim, lbS:"Fez up sell",                  lbN:"Não fez up sell"},
+    {f:"Tentou upsell?",                               sim:isSim, lbS:"Tentou upsell",              lbN:"Não tentou upsell"},
     {f:"Ofereceu café e/ou água?",                     sim:isSim, lbS:"Ofereceu café/água",            lbN:"Não ofereceu café/água"},
-    {f:"Quantas perguntas exploratórias feitas?",       sim:function(v){return parseFloat(v)>=1;},     lbS:"Fez perguntas exploratórias", lbN:"Não fez perguntas exploratórias"},
-    {f:"Demonstrou alternativas à objeção?",           sim:isSim, lbS:"Apresentou alternativas",      lbN:"Não apresentou alternativas"},
-    {f:"Tipo de abordagem",                            sim:isProativa, lbS:"Abordagem proativa",       lbN:"Cliente que abordou"},
+    {f:"Quantas perguntas exploratórias feitas?",       sim:function(v){return parseFloat(v)>=2;},     lbS:"Fez perguntas exploratórias (2 ou +)", lbN:"Não fez perguntas exploratórias (2 ou +)"},
+    {f:"Demonstrou alternativas à objeção?",           sim:isSim, lbS:"Apresentou alternativas à objeção",      lbN:"Não apresentou alternativas à objeção"},
+    {f:"Tipo de abordagem",                            sim:isProativa, lbS:"Abordagem proativa",       lbN:"Abordagem reativa"},
     {f:"Como foi o encerramento do vendedor?",         sim:isCordial, lbS:"Encerrou de forma cordial", lbN:"Encerrou de forma não cordial"},
     {f:"Fez sondagem para entender a necessidade?",    sim:isSim, lbS:"Sondou a necessidade",         lbN:"Não fez sondagem de necessidade"},
-    {f:"Tentou cross sell?",                           sim:isSim, lbS:"Fez cross sell",               lbN:"Não fez cross sell"},
+    {f:"Tentou cross sell?",                           sim:isSim, lbS:"Tentou cross-sell",            lbN:"Não tentou cross-sell"},
     {f:"Vendedor convidou o cliente a retornar?",      sim:isSim, lbS:"Convidou a retornar",          lbN:"Não convidou a retornar"},
     {f:"Perguntou o nome do cliente?",                 sim:isSim, lbS:"Perguntou o nome do cliente",  lbN:"Não perguntou o nome"},
   ];
   var ic = [];
+  var impactoPorCampo = []; // um valor só por campo, pra tabelas de impacto (evita duplicar direções inversas)
   indsCfg.forEach(function(x) {
     var simCount=0, naoCount=0;
+    var simConvNum=0, simConvDen=0, naoConvNum=0, naoConvDen=0;
     data.forEach(function(r){
       var v = r[x.f];
       if (!v||v.trim()===""||v.toLowerCase().trim()==="não aplicável") return;
-      if (x.sim(v)) simCount++; else naoCount++;
+      var cv = (r["Conversa convertida em venda?"]||"").trim().toLowerCase();
+      var temConversao = (cv==="sim"||cv==="não"||cv==="nao");
+      if (x.sim(v)) {
+        simCount++;
+        if (temConversao) { simConvDen++; if (cv==="sim") simConvNum++; }
+      } else {
+        naoCount++;
+        if (temConversao) { naoConvDen++; if (cv==="sim") naoConvNum++; }
+      }
     });
     var den = simCount + naoCount;
     if (den===0) return;
-    ic.push({label:x.lbS, p:Math.round(simCount/den*100)});
-    ic.push({label:x.lbN, p:Math.round(naoCount/den*100)});
+    var simConvPct = simConvDen>0 ? Math.round(simConvNum/simConvDen*100) : null;
+    var naoConvPct = naoConvDen>0 ? Math.round(naoConvNum/naoConvDen*100) : null;
+    ic.push({label:x.lbS, p:Math.round(simCount/den*100), convPct: simConvPct});
+    ic.push({label:x.lbN, p:Math.round(naoCount/den*100), convPct: naoConvPct});
+
+    // Amostra mínima pra considerar o impacto confiável (evita ruído de poucos casos)
+    var AMOSTRA_MINIMA = 5;
+    // Indicadores de Fechamento saem da análise de impacto: tendem a ser CONSEQUÊNCIA
+    // da venda ter dado certo (encerramento mais caprichado quando já fechou), não causa —
+    // incluir invertia a seta de causalidade.
+    var CAMPOS_EXCLUIDOS_IMPACTO = ["Como foi o encerramento do vendedor?", "Vendedor convidou o cliente a retornar?", "Vendedor falou do programa de fidelização?", "Demonstrou o produto?"];
+    var ehExcluido = CAMPOS_EXCLUIDOS_IMPACTO.indexOf(x.f) !== -1;
+    if (!ehExcluido && simConvPct !== null && naoConvPct !== null && simConvDen >= AMOSTRA_MINIMA && naoConvDen >= AMOSTRA_MINIMA) {
+      impactoPorCampo.push({
+        campo: x.f, labelSim: x.lbS, labelNao: x.lbN,
+        simConvPct: simConvPct, naoConvPct: naoConvPct,
+        lift: simConvPct - naoConvPct,
+        simConvDen: simConvDen, naoConvDen: naoConvDen
+      });
+    }
   });
   ic.sort(function(a,b){return b.p-a.p;});
   document.getElementById("tbl-ind-body").innerHTML = ic.map(function(c){
     return "<tr><td>"+c.label+"</td><td class=\"num\" style=\"color:var(--cyan);font-weight:600\">"+c.p+"%</td></tr>";
   }).join("");
+
+  // Um indicador só aparece uma vez, em uma posição — impacto positivo e negativo
+  // são as duas pontas da MESMA lista ordenada, não tabelas separadas.
+  var impactoOrdenado = impactoPorCampo.slice().sort(function(a,b){return b.lift-a.lift;});
+
+  var elImpacto = document.getElementById("tbl-impacto-body");
+  if (elImpacto) {
+    if (impactoOrdenado.length===0) {
+      elImpacto.innerHTML = "<p style=\"color:var(--text-dim);font-size:13px;text-align:center;padding:20px 0\">Amostra insuficiente pra calcular impacto</p>";
+    } else {
+      elImpacto.innerHTML = impactoOrdenado.map(function(x){
+        var sinal = x.lift>0 ? "+" : "";
+        var cor = x.lift>0 ? "var(--good, #22c55e)" : (x.lift<0 ? "var(--bad, #ef4444)" : "var(--text-dim)");
+        return "<tr><td title=\""+x.simConvDen+" fez / "+x.naoConvDen+" não fez\">"+x.labelSim+"</td>" +
+          "<td class=\"num\">"+x.simConvPct+"%</td>" +
+          "<td class=\"num\">"+x.naoConvPct+"%</td>" +
+          "<td class=\"num\" style=\"color:"+cor+";font-weight:700\">"+sinal+x.lift+"pp</td></tr>";
+      }).join("");
+    }
+  }
 
   // Funil processual: cada etapa é independente, mostra % de conversas que passaram por ela
   function funilPct(d, simFn, field) {
@@ -592,7 +881,7 @@ function renderAll() {
       tot++;
       if (campo === 'Tipo de abordagem') { if (isProativa(v)) sim++; }
       else if (campo === 'Cordialidade' || campo === 'Nível de engajamento do vendedor') { if (isAltoMedio(v)) sim++; }
-      else if (campo === 'Quantas perguntas exploratórias feitas?') { if (parseFloat(v) >= 1) sim++; }
+      else if (campo === 'Quantas perguntas exploratórias feitas?') { if (parseFloat(v) >= 2) sim++; }
       else if (campo === 'Como foi o encerramento do vendedor?') { if (isCordial(v)) sim++; }
       else { if (isSim(v)) sim++; }
     });
@@ -609,7 +898,7 @@ function renderAll() {
   var blocosDef = [
     {icon:'👋', name:'Abordagem',   campos:[
       {f:'_sempre1',             lbl:'Abordagem'},
-      {f:"Tipo de abordagem",       lbl:'Tipo de abordagem'},
+      {f:"Tipo de abordagem",       lbl:'Abordagem proativa'},
       {f:"Vendedor se apresentou pelo nome?",lbl:'Apresentação vendedor'},
       {f:"Perguntou o nome do cliente?",lbl:'Solicitou nome'},
       {f:"Ofereceu café e/ou água?",     lbl:'Oferta café/água'},
@@ -620,9 +909,9 @@ function renderAll() {
     ]},
     {icon:'🔄', name:'Condução',    campos:[
       {f:"Demonstrou o produto?",  lbl:'Demonstrou produto'},
-      {f:"Demonstrou alternativas à objeção?",lbl:'Alternativas à objeção'},
-      {f:"Tentou upsell?",              lbl:'Upsell'},
-      {f:"Tentou cross sell?",          lbl:'Cross-sell'},
+      {f:"Demonstrou alternativas à objeção?",lbl:'Apresentou alternativas à objeção'},
+      {f:"Tentou upsell?",              lbl:'Tentou upsell'},
+      {f:"Tentou cross sell?",          lbl:'Tentou cross-sell'},
     ]},
     {icon:'⭐', name:'Experiência', campos:[
       {f:"Cordialidade", lbl:'Cordialidade'},
@@ -652,21 +941,90 @@ function renderAll() {
       return "<div class=\"bloco-tooltip-row\"><span class=\"lbl\">"+x.lbl+"</span><span class=\"val "+vc+"\">"+x.p+"%</span></div>";
     }).join("") : "";
     var tooltip = tooltipRows ? "<div class=\"bloco-tooltip\"><div class=\"bloco-tooltip-title\">"+b.name+"</div>"+tooltipRows+"</div>" : "";
+    var isLight = document.body.getAttribute("data-theme") === "light";
     if (b.p === null) {
-      return "<div class=\"bloco-item\">"+tooltip+"<div class=\"bloco-circle\" style=\"background:rgba(74,85,104,.15)\">"+b.icon+"</div><div class=\"bloco-name\">"+b.name+"</div><div class=\"bloco-pct\" style=\"color:var(--text-dim)\">—</div></div>";
+      var bgNull = isLight ? "rgba(74,85,104,.3)" : "rgba(74,85,104,.15)";
+      return "<div class=\"bloco-item\">"+tooltip+"<div class=\"bloco-circle\" style=\"background:"+bgNull+"\">"+b.icon+"</div><div class=\"bloco-name\">"+b.name+"</div><div class=\"bloco-pct\" style=\"color:var(--text-dim)\">—</div></div>";
     }
     var cls = b.p>=70?"c-good":b.p>=40?"c-warn":"c-bad";
-    var bg = b.p>=70?"rgba(74,222,128,.15)":b.p>=40?"rgba(251,146,60,.15)":"rgba(248,113,113,.15)";
+    var bg = isLight
+      ? (b.p>=70?"rgba(34,197,94,.28)":b.p>=40?"rgba(251,146,60,.3)":"rgba(239,68,68,.25)")
+      : (b.p>=70?"rgba(74,222,128,.15)":b.p>=40?"rgba(251,146,60,.15)":"rgba(248,113,113,.15)");
     return "<div class=\"bloco-item\">"+tooltip+"<div class=\"bloco-circle\" style=\"background:"+bg+"\">"+b.icon+"</div><div class=\"bloco-name\">"+b.name+"</div><div class=\"bloco-pct "+cls+"\">"+b.p+"%</div></div>";
+  }).join("");
+
+  // Tabela de indicadores por bloco, sempre visível (antes só aparecia no hover)
+  document.getElementById("blocos-detail").innerHTML = blocos.map(function(b){
+    var rows = (b.breakdown && b.breakdown.length) ? b.breakdown.map(function(x){
+      var vc = x.p>=70?"c-good":x.p>=40?"c-warn":"c-bad";
+      return "<div class=\"blocos-detail-row\"><span class=\"lbl\">"+x.lbl+"</span><span class=\"val "+vc+"\">"+x.p+"%</span></div>";
+    }).join("") : "<div class=\"blocos-detail-row\"><span class=\"lbl\" style=\"color:var(--text-dim)\">Sem dados</span></div>";
+    return "<div class=\"blocos-detail-col\"><div class=\"blocos-detail-title\">"+b.icon+" "+b.name+"</div>"+rows+"</div>";
   }).join("");
 
   // Atualiza destaques com as conversas filtradas
   var _dIds = new Set(FILTERED.map(function(r){return r.conversa_id || r["conversa_id"];}));
   var _dFilt = ALL_DEST.filter(function(d){return _dIds.has(d.conversa_id);});
   renderDestaques(_dFilt);
+  updateDuracaoChart(data);
 }
 
 var donutCharts = {};
+var duracaoChart = null;
+function updateDuracaoChart(data) {
+  var el = document.getElementById("chartDuracao");
+  if (!el) return;
+  var BIN = 3; // minutos por faixa
+  var totalB = {}, convB = {}, naoConvB = {};
+  var maxBucket = 0;
+  data.forEach(function(r){
+    var min = parseDuration(r.duracao);
+    if (min <= 0) return;
+    var b = Math.floor(min / BIN);
+    if (b > maxBucket) maxBucket = b;
+    totalB[b] = (totalB[b]||0) + 1;
+    var cv = (r["Conversa convertida em venda?"]||"").trim().toLowerCase();
+    if (cv==="sim") convB[b] = (convB[b]||0) + 1;
+    else if (cv==="não"||cv==="nao") naoConvB[b] = (naoConvB[b]||0) + 1;
+  });
+  var labels = [], total = [], conv = [], naoConv = [];
+  for (var i = 0; i <= maxBucket; i++) {
+    labels.push((i*BIN) + "-" + (i*BIN+BIN) + "min");
+    total.push(totalB[i] || 0);
+    conv.push(convB[i] || 0);
+    naoConv.push(naoConvB[i] || 0);
+  }
+  var tickColor = document.body.getAttribute("data-theme") === "light" ? "#5b6b7f" : "#7d8fa3";
+  if (duracaoChart) {
+    duracaoChart.data.labels = labels;
+    duracaoChart.data.datasets[0].data = total;
+    duracaoChart.data.datasets[1].data = conv;
+    duracaoChart.data.datasets[2].data = naoConv;
+    duracaoChart.options.scales.x.ticks.color = tickColor;
+    duracaoChart.options.scales.y.ticks.color = tickColor;
+    duracaoChart.update();
+  } else {
+    duracaoChart = new Chart(el, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [
+          { label: "Total", data: total, borderColor: "#60a5fa", backgroundColor: "rgba(96,165,250,.15)", fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: "#60a5fa" },
+          { label: "Vendas", data: conv, borderColor: "#1e3a8a", backgroundColor: "rgba(30,58,138,.15)", fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: "#1e3a8a" },
+          { label: "Não convertida", data: naoConv, borderColor: "#b45309", backgroundColor: "rgba(180,83,9,.12)", fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: "#b45309" }
+        ]
+      },
+      options: {
+        plugins: { legend: { display: true, position: "bottom", labels: { color: tickColor, boxWidth: 12, font: { size: 11 } } }, tooltip: { enabled: true } },
+        scales: {
+          x: { ticks: { color: tickColor, font: { size: 10 } }, grid: { display: false } },
+          y: { beginAtZero: true, ticks: { color: tickColor, precision: 0 }, grid: { color: "rgba(125,143,163,.15)" } }
+        },
+        animation: { duration: 300 }
+      }
+    });
+  }
+}
 function updateDonut(cid, lid, vals, colors, labels, total) {
   if (donutCharts[cid]) { donutCharts[cid].data.datasets[0].data = vals; donutCharts[cid].update(); }
   else {
@@ -690,12 +1048,17 @@ function renderClienteView(data) {
   var PERFIS_COLORS = ["#22c55e","#f59e0b","#6366f1"];
   var perfilCount = {"Decidido":0,"Indeciso":0,"Pesquisador":0};
   var perfilConv  = {"Decidido":0,"Indeciso":0,"Pesquisador":0};
+  var perfilConvDen = {"Decidido":0,"Indeciso":0,"Pesquisador":0}; // só sim+não, exclui "não aplicável"
   data.forEach(function(r){
     var v = (r["perfil_cliente"]||"").trim();
     var vN = v.charAt(0).toUpperCase() + v.slice(1).toLowerCase();
     if (perfilCount[vN] !== undefined) {
       perfilCount[vN]++;
-      if (isSim(r["Conversa convertida em venda?"])) perfilConv[vN]++;
+      var cv = (r["Conversa convertida em venda?"]||"").trim().toLowerCase();
+      if (cv==="sim"||cv==="não"||cv==="nao") {
+        perfilConvDen[vN]++;
+        if (cv==="sim") perfilConv[vN]++;
+      }
     }
   });
   var perfilVals = PERFIS.map(function(p){ return perfilCount[p]; });
@@ -708,10 +1071,10 @@ function renderClienteView(data) {
 
   // Perfil que Mais Converte — barras rankeadas por taxa de conversão
   var perfilTaxas = PERFIS
-    .filter(function(p){ return perfilCount[p] > 0; })
+    .filter(function(p){ return perfilConvDen[p] > 0; })
     .map(function(p,_){
       var idx = PERFIS.indexOf(p);
-      return { label: p, taxa: perfilConv[p]/perfilCount[p], conv: perfilConv[p], total: perfilCount[p], cor: PERFIS_COLORS[idx] };
+      return { label: p, taxa: perfilConv[p]/perfilConvDen[p], conv: perfilConv[p], total: perfilConvDen[p], cor: PERFIS_COLORS[idx] };
     })
     .sort(function(a,b){ return b.taxa - a.taxa; });
   if (perfilTaxas.length > 0) {
@@ -727,7 +1090,6 @@ function renderClienteView(data) {
             "<div style='height:100%;width:"+barW+"%;background:"+item.cor+";border-radius:4px'></div>" +
           "</div>" +
           "<span style='font-size:13px;font-weight:600;color:"+item.cor+";min-width:36px;text-align:right'>"+pct+"%</span>" +
-          "<span style='font-size:11px;color:var(--text-muted);min-width:40px'>"+item.conv+"/"+item.total+"</span>" +
         "</div>";
       }).join("") +
       "</div>";
@@ -815,6 +1177,45 @@ function renderClienteView(data) {
       return "<tr><td>"+e[0]+"</td><td style='text-align:right;color:var(--text-muted)'>"+e[1]+"</td><td style='text-align:right;color:var(--text-muted)'>"+pct(e[1],n)+"%</td></tr>";
     }).join("");
 
+  // Dropdown: itens procurados dado uma objeção selecionada
+  (function(){
+    var selEl = document.getElementById("sel-obj-produto");
+    if (!selEl) return;
+    var categorias = Object.entries(oa).sort(function(a,b){return b[1]-a[1];}).map(function(e){return e[0];});
+    if (categorias.length === 0) {
+      selEl.innerHTML = "<option value=''>Sem objeções registradas</option>";
+      document.getElementById("hbar-obj-produto").innerHTML = "";
+      window.renderObjProdutoList = function(){};
+      return;
+    }
+    selEl.innerHTML = categorias.map(function(c){ return "<option value=\""+c+"\">"+c+" ("+oa[c]+")</option>"; }).join("");
+
+    window.renderObjProdutoList = function(){
+      var val = document.getElementById("sel-obj-produto").value;
+      var rows = data.filter(function(r){
+        var raw = (r["Qual foi a objeção?"]||"").trim();
+        if (!raw) return false;
+        return raw.split(";").some(function(s){
+          if (isNaoAplicavel(s)) return false;
+          return dp(s.trim(),"objecao") === val;
+        });
+      });
+      var c = {};
+      rows.forEach(function(r){
+        var v = dp((r["Produto procurado"]||"").trim(), "produto");
+        if (!v || IGNORAR_PRODUTO.indexOf(v.toLowerCase()) !== -1) return;
+        c[v] = (c[v]||0) + 1;
+      });
+      var list = Object.entries(c).map(function(e){return {label:e[0],val:e[1]};}).sort(function(a,b){return b.val-a.val;});
+      if (list.length === 0) {
+        document.getElementById("hbar-obj-produto").innerHTML = "<p style='color:var(--text-dim);font-size:12px;text-align:center;padding:12px 0'>Sem produtos registrados para essa objeção</p>";
+      } else {
+        renderHBars("hbar-obj-produto", list, "var(--blue)");
+      }
+    };
+    window.renderObjProdutoList();
+  })();
+
   // Motivos de perda — coluna "Qual foi o motivo da não conversão?"
   (function(){
     var LABEL_PERDA = {
@@ -839,6 +1240,43 @@ function renderClienteView(data) {
       renderHBars("hbar-perda", perdaData, "var(--bad)");
     } else {
       document.getElementById("hbar-perda").innerHTML = "<p style='color:var(--text-dim);font-size:14px;text-align:center'>Sem motivos de perda registrados</p>";
+    }
+
+    // Dropdown: itens procurados dado um motivo de perda selecionado
+    var selEl2 = document.getElementById("sel-perda-produto");
+    if (selEl2) {
+      var categoriasPerda = Object.entries(perdaCount).sort(function(a,b){return b[1]-a[1];}).map(function(e){return e[0];});
+      if (categoriasPerda.length === 0) {
+        selEl2.innerHTML = "<option value=''>Sem motivos registrados</option>";
+        document.getElementById("hbar-perda-produto").innerHTML = "";
+        window.renderPerdaProdutoList = function(){};
+      } else {
+        selEl2.innerHTML = categoriasPerda.map(function(c){ return "<option value=\""+c+"\">"+c+" ("+perdaCount[c]+")</option>"; }).join("");
+
+        window.renderPerdaProdutoList = function(){
+          var val = document.getElementById("sel-perda-produto").value;
+          var rows = data.filter(function(r){
+            if (!isNao(r["Conversa convertida em venda?"])) return false;
+            var v = (r["Qual foi o motivo da não conversão?"]||"").trim().toLowerCase();
+            if (isNaoAplicavel(v)) return false;
+            var label = LABEL_PERDA[v] || (v.charAt(0).toUpperCase()+v.slice(1));
+            return label === val;
+          });
+          var c = {};
+          rows.forEach(function(r){
+            var v = dp((r["Produto procurado"]||"").trim(), "produto");
+            if (!v || IGNORAR_PRODUTO.indexOf(v.toLowerCase()) !== -1) return;
+            c[v] = (c[v]||0) + 1;
+          });
+          var list = Object.entries(c).map(function(e){return {label:e[0],val:e[1]};}).sort(function(a,b){return b.val-a.val;});
+          if (list.length === 0) {
+            document.getElementById("hbar-perda-produto").innerHTML = "<p style='color:var(--text-dim);font-size:12px;text-align:center;padding:12px 0'>Sem produtos registrados para esse motivo</p>";
+          } else {
+            renderHBars("hbar-perda-produto", list, "var(--bad)");
+          }
+        };
+        window.renderPerdaProdutoList();
+      }
     }
   })();
 
@@ -875,13 +1313,8 @@ async function loadData() {
       var itensText = await itensRes.text();
       ALL_ITENS = rowsToObjects(parseCSV(itensText));
     } catch(e3) { ALL_ITENS = []; }
-    var dates = ALL_DATA.map(function(r){return parseDate(r.data_hora);}).filter(function(d){return d>new Date(0);});
-    if (dates.length) {
-      var mn = new Date(Math.min.apply(null,dates)), mx = new Date(Math.max.apply(null,dates));
-      document.getElementById("date-from").value = mn.toISOString().slice(0,10);
-      document.getElementById("date-to").value = mx.toISOString().slice(0,10);
-      document.getElementById("date-label").textContent = mn.toLocaleDateString("pt-BR",{day:"2-digit",month:"short"}) + " – " + mx.toLocaleDateString("pt-BR",{day:"2-digit",month:"short"});
-    }
+    // Não pré-preenche o filtro de data — carrega sempre com "Todas as datas"
+    document.getElementById("date-label").textContent = "Todas as datas";
     document.getElementById("last-update").textContent = "Atualizado: " + new Date().toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",hour:"2-digit",minute:"2-digit"});
     buildDropdowns(ALL_DATA);
     applyFilters();
