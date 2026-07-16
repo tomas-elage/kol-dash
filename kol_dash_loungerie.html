@@ -49,9 +49,12 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .date-cal-day.range-start{border-radius:6px 0 0 6px}
 .date-cal-day.range-end{border-radius:0 6px 6px 0}
 .date-cal-day.range-start,.date-cal-day.range-end{background:var(--cyan);color:#04202a;font-weight:700}
-.date-cal-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
-#cal-range-label{font-size:11px;color:var(--text-dim)}
+.date-cal-footer{display:flex;align-items:center;gap:8px}
+#cal-range-label{font-size:11px;color:var(--text-dim);flex:1}
 .date-apply-btn{background:var(--blue);border:none;border-radius:6px;color:#fff;padding:6px 16px;font-size:12px;cursor:pointer;flex-shrink:0}
+.dd-clear-btn{background:none;border:none;color:var(--blue);font-size:11px;cursor:pointer;padding:0;flex-shrink:0;white-space:nowrap}
+.dd-clear-btn:hover{text-decoration:underline}
+.dd-clear-row{padding:2px 14px 8px;border-bottom:1px solid var(--border);margin-bottom:4px}
 .nav-right{margin-left:auto;display:flex;align-items:center;gap:8px}
 .btn-clear{background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:12px}
 .btn-export{display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--text-muted);text-decoration:none}
@@ -177,6 +180,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   </div>
   <div class="date-cal-grid" id="cal-grid"></div>
   <div class="date-cal-footer">
+    <button type="button" class="dd-clear-btn" onclick="clearDateFilter()">Limpar</button>
     <span id="cal-range-label">Selecione o período</span>
     <button type="button" class="date-apply-btn" onclick="applyCalendarRange()">Aplicar</button>
   </div>
@@ -526,6 +530,15 @@ function renderCalendarGrid() {
   }
 }
 
+function clearDateFilter() {
+  document.getElementById("date-from").value = "";
+  document.getElementById("date-to").value = "";
+  resetCalendarState();
+  renderCalendarGrid();
+  applyFilters();
+  closeAllDD();
+}
+
 function applyCalendarRange() {
   if (calRangeStart) {
     document.getElementById("date-from").value = toISODate(calRangeStart);
@@ -555,15 +568,32 @@ function updateFilter(type) {
   applyFilters();
 }
 
+function clearLojasFilter() {
+  document.querySelectorAll("#dd-lojas input:checked").forEach(function(i){i.checked=false;});
+  filters.lojas = [];
+  document.getElementById("lojas-badge").style.display = "none";
+  applyFilters();
+}
+function clearVendedoresFilter() {
+  document.querySelectorAll("#dd-vend input:checked").forEach(function(i){i.checked=false;});
+  filters.vendedores = [];
+  document.getElementById("vend-badge").style.display = "none";
+  applyFilters();
+}
+
 function buildDropdowns(data) {
   var lojas = Array.from(new Set(data.map(function(r){return r.loja;}).filter(Boolean))).sort();
   var vends = Array.from(new Set(data.map(function(r){return r.vendedor;}).filter(Boolean))).sort();
-  document.getElementById("dd-lojas").innerHTML = lojas.map(function(l) {
-    return "<label><input type=\"checkbox\" value=\"" + l + "\" onchange=\"updateFilter('lojas')\"> " + l + "</label>";
-  }).join("");
-  document.getElementById("dd-vend").innerHTML = vends.map(function(v) {
-    return "<label><input type=\"checkbox\" value=\"" + v + "\" onchange=\"updateFilter('vendedores')\"> " + v + "</label>";
-  }).join("");
+  document.getElementById("dd-lojas").innerHTML =
+    "<div class=\"dd-clear-row\"><button type=\"button\" class=\"dd-clear-btn\" onclick=\"clearLojasFilter()\">Limpar seleção</button></div>" +
+    lojas.map(function(l) {
+      return "<label><input type=\"checkbox\" value=\"" + l + "\" onchange=\"updateFilter('lojas')\"> " + l + "</label>";
+    }).join("");
+  document.getElementById("dd-vend").innerHTML =
+    "<div class=\"dd-clear-row\"><button type=\"button\" class=\"dd-clear-btn\" onclick=\"clearVendedoresFilter()\">Limpar seleção</button></div>" +
+    vends.map(function(v) {
+      return "<label><input type=\"checkbox\" value=\"" + v + "\" onchange=\"updateFilter('vendedores')\"> " + v + "</label>";
+    }).join("");
 }
 
 var sortState = {};
