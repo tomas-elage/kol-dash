@@ -31,10 +31,26 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .dropdown label{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12px;color:var(--text-muted);cursor:pointer}
 .dropdown label:hover{background:rgba(255,255,255,.05);color:var(--text)}
 .dropdown label input{accent-color:var(--cyan)}
-.dropdown-date{min-width:220px;padding:10px 14px}
-.dropdown-date label{display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px}
-.dropdown-date input[type=date]{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:5px 8px;font-size:12px;margin-bottom:8px}
-.dropdown-date button{width:100%;background:var(--blue);border:none;border-radius:5px;color:#fff;padding:6px;font-size:12px;cursor:pointer}
+.dropdown-date{width:270px;padding:14px;box-sizing:border-box}
+.date-presets{display:flex;gap:6px;margin-bottom:12px}
+.date-preset-btn{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:14px;color:var(--text-muted);font-size:11px;padding:5px 0;cursor:pointer}
+.date-preset-btn.active{background:var(--cyan);color:#04202a;border-color:var(--cyan);font-weight:700}
+.date-cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:13px;font-weight:600;color:var(--text)}
+.date-cal-header button{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:2px 10px;line-height:1}
+.date-cal-header button:hover{color:var(--text)}
+.date-cal-dows{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px}
+.date-cal-dows span{font-size:10px;color:var(--text-dim);text-align:center;text-transform:uppercase}
+.date-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:12px}
+.date-cal-day{font-size:12px;text-align:center;padding:6px 0;border-radius:6px;cursor:pointer;color:var(--text)}
+.date-cal-day:hover:not(.muted){background:var(--border)}
+.date-cal-day.muted{color:var(--text-dim);cursor:default;opacity:.4}
+.date-cal-day.in-range{background:rgba(6,182,212,.18);border-radius:0}
+.date-cal-day.range-start{border-radius:6px 0 0 6px}
+.date-cal-day.range-end{border-radius:0 6px 6px 0}
+.date-cal-day.range-start,.date-cal-day.range-end{background:var(--cyan);color:#04202a;font-weight:700}
+.date-cal-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#cal-range-label{font-size:11px;color:var(--text-dim)}
+.date-apply-btn{background:var(--blue);border:none;border-radius:6px;color:#fff;padding:6px 16px;font-size:12px;cursor:pointer;flex-shrink:0}
 .nav-right{margin-left:auto;display:flex;align-items:center;gap:8px}
 .btn-clear{background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:12px}
 .btn-export{display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--text-muted);text-decoration:none}
@@ -142,7 +158,28 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   <div class="nav-right">
     <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Alternar modo claro/escuro">🌙</button>
     <button class="btn-clear" onclick="clearFilters()">limpar filtros</button>
-    <div class="filter-chip" onclick="toggleDD('dd-date',event)">📅 <span id="date-label">—</span><div class="dropdown dropdown-date" id="dd-date" onclick="event.stopPropagation()"><label>De</label><input type="date" id="date-from" onchange="applyFilters()"><label>Até</label><input type="date" id="date-to" onchange="applyFilters()"><button onclick="applyFilters();closeAllDD()">Aplicar</button></div></div>
+    <div class="filter-chip" onclick="toggleDD('dd-date',event)">📅 <span id="date-label">—</span><div class="dropdown dropdown-date" id="dd-date" onclick="event.stopPropagation()">
+  <input type="date" id="date-from" style="display:none">
+  <input type="date" id="date-to" style="display:none">
+  <div class="date-presets">
+    <button type="button" class="date-preset-btn" id="preset-7" onclick="setDatePreset(7)">7 dias</button>
+    <button type="button" class="date-preset-btn" id="preset-30" onclick="setDatePreset(30)">30 dias</button>
+    <button type="button" class="date-preset-btn" id="preset-90" onclick="setDatePreset(90)">90 dias</button>
+  </div>
+  <div class="date-cal-header">
+    <button type="button" onclick="calMonthDelta(-1)">‹</button>
+    <span id="cal-month-label"></span>
+    <button type="button" onclick="calMonthDelta(1)">›</button>
+  </div>
+  <div class="date-cal-dows">
+    <span>dom</span><span>seg</span><span>ter</span><span>qua</span><span>qui</span><span>sex</span><span>sab</span>
+  </div>
+  <div class="date-cal-grid" id="cal-grid"></div>
+  <div class="date-cal-footer">
+    <span id="cal-range-label">Selecione o período</span>
+    <button type="button" class="date-apply-btn" onclick="applyCalendarRange()">Aplicar</button>
+  </div>
+</div></div>
     <span class="last-update" id="last-update"></span>
     <a class="btn-export" href="https://docs.google.com/spreadsheets/d/1PJpvUAGzHL6I4Hjq7UOBT7KfoELDU8J8jrmAbOOdYTM" target="_blank">↓ Dados</a>
   </div>
@@ -365,6 +402,7 @@ function clearFilters() {
   document.getElementById("date-from").value = "";
   document.getElementById("date-to").value = "";
   document.getElementById("date-label").textContent = "Todas as datas";
+  resetCalendarState();
   document.getElementById("lojas-badge").style.display = "none";
   document.getElementById("vend-badge").style.display = "none";
   applyFilters();
@@ -386,10 +424,125 @@ function toggleDD(id, e) {
   var dd = document.getElementById(id);
   var was = dd.classList.contains("open");
   closeAllDD();
-  if (!was) dd.classList.add("open");
+  if (!was) {
+    dd.classList.add("open");
+    if (id === "dd-date") renderCalendarGrid();
+  }
 }
 function closeAllDD() { document.querySelectorAll(".dropdown.open").forEach(function(d){d.classList.remove("open");}); }
 document.addEventListener("click", closeAllDD);
+
+// ── Calendário de datas ──────────────────────────────────────────────────
+var calViewMonth = new Date().getMonth();
+var calViewYear = new Date().getFullYear();
+var calRangeStart = null, calRangeEnd = null; // objetos Date, ou null
+
+function toISODate(d) {
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function fmtCalLabel(d) { return d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"}); }
+
+function calMonthDelta(n) {
+  calViewMonth += n;
+  if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; }
+  if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
+  renderCalendarGrid();
+}
+
+function setDatePreset(dias) {
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var inicio = new Date(hoje); inicio.setDate(inicio.getDate() - (dias - 1));
+  calRangeStart = inicio; calRangeEnd = hoje;
+  calViewMonth = hoje.getMonth(); calViewYear = hoje.getFullYear();
+  document.querySelectorAll(".date-preset-btn").forEach(function(b){b.classList.remove("active");});
+  var btn = document.getElementById("preset-" + dias);
+  if (btn) btn.classList.add("active");
+  renderCalendarGrid();
+}
+
+function calDayClick(y, m, d) {
+  var clicked = new Date(y, m, d);
+  document.querySelectorAll(".date-preset-btn").forEach(function(b){b.classList.remove("active");});
+  if (!calRangeStart || (calRangeStart && calRangeEnd)) {
+    // Começa nova seleção
+    calRangeStart = clicked; calRangeEnd = null;
+  } else if (clicked < calRangeStart) {
+    // Clicou antes do início -> vira o novo início
+    calRangeEnd = calRangeStart; calRangeStart = clicked;
+  } else {
+    calRangeEnd = clicked;
+  }
+  renderCalendarGrid();
+}
+
+function renderCalendarGrid() {
+  var label = document.getElementById("cal-month-label");
+  if (!label) return; // dropdown ainda não existe nesse momento
+  var MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  label.textContent = MESES[calViewMonth] + " " + calViewYear;
+
+  var primeiroDia = new Date(calViewYear, calViewMonth, 1);
+  var startWeekday = primeiroDia.getDay();
+  var diasNoMes = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+  var diasNoMesAnterior = new Date(calViewYear, calViewMonth, 0).getDate();
+
+  var celulas = [];
+  for (var i = 0; i < startWeekday; i++) {
+    celulas.push({ dia: diasNoMesAnterior - startWeekday + 1 + i, muted: true, y: calViewMonth===0?calViewYear-1:calViewYear, m: calViewMonth===0?11:calViewMonth-1 });
+  }
+  for (var d = 1; d <= diasNoMes; d++) {
+    celulas.push({ dia: d, muted: false, y: calViewYear, m: calViewMonth });
+  }
+  while (celulas.length % 7 !== 0 || celulas.length < 42) {
+    var last = celulas[celulas.length-1];
+    var prox = new Date(last.y, last.m, last.dia + 1);
+    celulas.push({ dia: prox.getDate(), muted: true, y: prox.getFullYear(), m: prox.getMonth() });
+    if (celulas.length >= 42) break;
+  }
+
+  document.getElementById("cal-grid").innerHTML = celulas.map(function(c){
+    var thisDate = new Date(c.y, c.m, c.dia);
+    var classes = ["date-cal-day"];
+    if (c.muted) classes.push("muted");
+    if (calRangeStart && !c.muted) {
+      var s = calRangeStart, e = calRangeEnd || calRangeStart;
+      if (thisDate.getTime() === s.getTime() && thisDate.getTime() === e.getTime()) classes.push("range-start","range-end");
+      else if (thisDate.getTime() === s.getTime()) classes.push("range-start");
+      else if (thisDate.getTime() === e.getTime()) classes.push("range-end");
+      else if (thisDate > s && thisDate < e) classes.push("in-range");
+    }
+    var onclick = c.muted ? "" : ("onclick=\"calDayClick(" + c.y + "," + c.m + "," + c.dia + ")\"");
+    return "<div class=\"" + classes.join(" ") + "\" " + onclick + ">" + c.dia + "</div>";
+  }).join("");
+
+  var rangeLabel = document.getElementById("cal-range-label");
+  if (calRangeStart && calRangeEnd) {
+    rangeLabel.textContent = fmtCalLabel(calRangeStart) + " – " + fmtCalLabel(calRangeEnd);
+  } else if (calRangeStart) {
+    rangeLabel.textContent = fmtCalLabel(calRangeStart) + " – selecione o fim";
+  } else {
+    rangeLabel.textContent = "Selecione o período";
+  }
+}
+
+function applyCalendarRange() {
+  if (calRangeStart) {
+    document.getElementById("date-from").value = toISODate(calRangeStart);
+    document.getElementById("date-to").value = toISODate(calRangeEnd || calRangeStart);
+  } else {
+    document.getElementById("date-from").value = "";
+    document.getElementById("date-to").value = "";
+  }
+  applyFilters();
+  closeAllDD();
+}
+
+function resetCalendarState() {
+  calRangeStart = null; calRangeEnd = null;
+  var hoje = new Date();
+  calViewMonth = hoje.getMonth(); calViewYear = hoje.getFullYear();
+  document.querySelectorAll(".date-preset-btn").forEach(function(b){b.classList.remove("active");});
+}
 
 function updateFilter(type) {
   var id = type === "lojas" ? "dd-lojas" : "dd-vend";
