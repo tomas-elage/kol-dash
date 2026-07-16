@@ -103,9 +103,11 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .blocos-detail{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
 .blocos-detail-col{display:flex;flex-direction:column;gap:4px}
 .blocos-detail-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--text-dim);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.blocos-detail-row{display:flex;justify-content:space-between;gap:6px;font-size:11px;padding:2px 0}
+.blocos-detail-row{display:flex;justify-content:space-between;gap:6px;font-size:11px;padding:2px 0;position:relative;cursor:default}
 .blocos-detail-row .lbl{color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .blocos-detail-row .val{font-weight:600;flex-shrink:0}
+.field-tooltip{display:none;position:absolute;bottom:calc(100% + 6px);left:0;background:#1e2736;border:1px solid var(--border);border-radius:8px;padding:9px 12px;width:230px;white-space:normal;font-size:11px;line-height:1.45;color:#e6edf3;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.blocos-detail-row:hover .field-tooltip{display:block}
 
 .bloco-item{text-align:center;flex:1}.bloco-circle{width:48px;height:48px;border-radius:50%;margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-size:18px}
 .bloco-name{font-size:10px;color:var(--text-muted);margin-bottom:1px}.bloco-pct{font-size:13px;font-weight:700}
@@ -936,28 +938,45 @@ function renderAll() {
     return {icon:b.icon, name:b.name, p:p, breakdown:breakdown};
   });
   document.getElementById("blocos-arc").innerHTML = blocos.map(function(b){
-    var tooltipRows = b.breakdown && b.breakdown.length ? b.breakdown.map(function(x){
-      var vc = x.p>=70?"c-good":x.p>=40?"c-warn":"c-bad";
-      return "<div class=\"bloco-tooltip-row\"><span class=\"lbl\">"+x.lbl+"</span><span class=\"val "+vc+"\">"+x.p+"%</span></div>";
-    }).join("") : "";
-    var tooltip = tooltipRows ? "<div class=\"bloco-tooltip\"><div class=\"bloco-tooltip-title\">"+b.name+"</div>"+tooltipRows+"</div>" : "";
     var isLight = document.body.getAttribute("data-theme") === "light";
     if (b.p === null) {
       var bgNull = isLight ? "rgba(74,85,104,.3)" : "rgba(74,85,104,.15)";
-      return "<div class=\"bloco-item\">"+tooltip+"<div class=\"bloco-circle\" style=\"background:"+bgNull+"\">"+b.icon+"</div><div class=\"bloco-name\">"+b.name+"</div><div class=\"bloco-pct\" style=\"color:var(--text-dim)\">—</div></div>";
+      return "<div class=\"bloco-item\"><div class=\"bloco-circle\" style=\"background:"+bgNull+"\">"+b.icon+"</div><div class=\"bloco-name\">"+b.name+"</div><div class=\"bloco-pct\" style=\"color:var(--text-dim)\">—</div></div>";
     }
     var cls = b.p>=70?"c-good":b.p>=40?"c-warn":"c-bad";
     var bg = isLight
       ? (b.p>=70?"rgba(34,197,94,.28)":b.p>=40?"rgba(251,146,60,.3)":"rgba(239,68,68,.25)")
       : (b.p>=70?"rgba(74,222,128,.15)":b.p>=40?"rgba(251,146,60,.15)":"rgba(248,113,113,.15)");
-    return "<div class=\"bloco-item\">"+tooltip+"<div class=\"bloco-circle\" style=\"background:"+bg+"\">"+b.icon+"</div><div class=\"bloco-name\">"+b.name+"</div><div class=\"bloco-pct "+cls+"\">"+b.p+"%</div></div>";
+    return "<div class=\"bloco-item\"><div class=\"bloco-circle\" style=\"background:"+bg+"\">"+b.icon+"</div><div class=\"bloco-name\">"+b.name+"</div><div class=\"bloco-pct "+cls+"\">"+b.p+"%</div></div>";
   }).join("");
 
-  // Tabela de indicadores por bloco, sempre visível (antes só aparecia no hover)
+  // Tabela de indicadores por bloco, sempre visível — cada linha tem sua própria
+  // explicação, que aparece no hover só daquela linha específica.
+  var EXPLICACAO_INDICADOR = {
+    "Abordagem": "Como a KOL captura as conversas por áudio, nós só mapeamos atendimentos que tiveram abordagem. Se um cliente entra na loja e sai sem falar com nenhum vendedor, hoje não capturamos.",
+    "Abordagem proativa": "O vendedor proativamente abordou o cliente e abriu o atendimento.",
+    "Apresentação vendedor": "O vendedor se apresentou para o cliente pelo nome.",
+    "Solicitou nome": "O(a) vendedor(a) perguntou o nome do(a) cliente.",
+    "Oferta café/água": "O(a) vendedor(a) ofereceu para o(a) cliente café e/ou água.",
+    "Sondagem": "O(a) vendedor(a) fez pelo menos 1 pergunta para entender a necessidade e motivo da visita do(a) cliente.",
+    "Perguntas exploratórias": "O(a) vendedor(a) fez 2 ou mais perguntas onde não cabem respostas de \"sim\" ou \"não\" para explorar mais a fundo as necessidades do(a) cliente.",
+    "Demonstrou produto": "O(a) vendedor(a) demonstrou pelo menos 1 produto da loja para o(a) cliente.",
+    "Apresentou alternativas à objeção": "Quando houve algum tipo de objeção levantada pelo(a) cliente, o(a) vendedor(a) soube apresentar alguma alternativa.",
+    "Tentou upsell": "O(a) vendedor(a) tentou ofertar para o(a) cliente um produto da mesma categoria que tem um valor superior.",
+    "Tentou cross-sell": "O(a) vendedor(a) tentou ofertar para o(a) cliente um produto de outra categoria que complementaria a venda.",
+    "Cordialidade": "O(a) vendedor(a) teve um trato cordial e respeitoso com o(a) cliente.",
+    "Engajamento": "O(a) vendedor(a) se demonstrou engajado no atendimento e na conversa com o(a) cliente.",
+    "Comportamento": "O(a) vendedor(a) teve um comportamento positivo com o(a) cliente.",
+    "Encerramento cordial": "O(a) vendedor(a) encerrou o atendimento de forma cordial e respeitosa com o(a) cliente.",
+    "Convidou a retornar": "O(a) vendedor(a) convidou o(a) cliente a retornar à loja.",
+    "Plano fidelização": "O(a) vendedor(a) apresentou e ofereceu ao(à) cliente o plano de fidelização da loja."
+  };
   document.getElementById("blocos-detail").innerHTML = blocos.map(function(b){
     var rows = (b.breakdown && b.breakdown.length) ? b.breakdown.map(function(x){
       var vc = x.p>=70?"c-good":x.p>=40?"c-warn":"c-bad";
-      return "<div class=\"blocos-detail-row\"><span class=\"lbl\">"+x.lbl+"</span><span class=\"val "+vc+"\">"+x.p+"%</span></div>";
+      var explicacao = EXPLICACAO_INDICADOR[x.lbl];
+      var tip = explicacao ? "<div class=\"field-tooltip\">"+explicacao+"</div>" : "";
+      return "<div class=\"blocos-detail-row\">"+tip+"<span class=\"lbl\">"+x.lbl+"</span><span class=\"val "+vc+"\">"+x.p+"%</span></div>";
     }).join("") : "<div class=\"blocos-detail-row\"><span class=\"lbl\" style=\"color:var(--text-dim)\">Sem dados</span></div>";
     return "<div class=\"blocos-detail-col\"><div class=\"blocos-detail-title\">"+b.icon+" "+b.name+"</div>"+rows+"</div>";
   }).join("");
