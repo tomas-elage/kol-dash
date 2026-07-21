@@ -412,6 +412,8 @@ function clearFilters() {
   resetCalendarState();
   document.getElementById("lojas-badge").style.display = "none";
   document.getElementById("vend-badge").style.display = "none";
+  refreshVendedoresDropdown();
+  refreshLojasDropdown();
   applyFilters();
 }
 
@@ -567,19 +569,68 @@ function updateFilter(type) {
   var badge = document.getElementById(type === "lojas" ? "lojas-badge" : "vend-badge");
   badge.textContent = checked.length;
   badge.style.display = checked.length ? "" : "none";
+  if (type === "lojas") refreshVendedoresDropdown();
+  if (type === "vendedores") refreshLojasDropdown();
   applyFilters();
+}
+
+// Restringe as opções de Vendedores às lojas selecionadas (ou todas, se nenhuma loja estiver marcada).
+// Mantém marcados os vendedores que ainda são válidos na nova lista; remove os que não são mais.
+function refreshVendedoresDropdown() {
+  var relevantData = filters.lojas.length
+    ? ALL_DATA.filter(function(r){ return filters.lojas.indexOf(r.loja) !== -1; })
+    : ALL_DATA;
+  var vends = Array.from(new Set(relevantData.map(function(r){return r.vendedor;}).filter(Boolean))).sort();
+  var vendsSet = new Set(vends);
+  var novosSelecionados = filters.vendedores.filter(function(v){ return vendsSet.has(v); });
+  filters.vendedores = novosSelecionados;
+
+  document.getElementById("dd-vend").innerHTML =
+    "<div class=\"dd-clear-row\"><button type=\"button\" class=\"dd-clear-btn\" onclick=\"clearVendedoresFilter()\">Limpar seleção</button></div>" +
+    vends.map(function(v) {
+      var checkedAttr = novosSelecionados.indexOf(v) !== -1 ? " checked" : "";
+      return "<label><input type=\"checkbox\" value=\"" + v + "\" onchange=\"updateFilter('vendedores')\"" + checkedAttr + "> " + v + "</label>";
+    }).join("");
+
+  var vendBadge = document.getElementById("vend-badge");
+  vendBadge.textContent = novosSelecionados.length;
+  vendBadge.style.display = novosSelecionados.length ? "" : "none";
+}
+
+// Restringe as opções de Lojas aos vendedores selecionados (ou todas, se nenhum vendedor estiver marcado).
+function refreshLojasDropdown() {
+  var relevantData = filters.vendedores.length
+    ? ALL_DATA.filter(function(r){ return filters.vendedores.indexOf(r.vendedor) !== -1; })
+    : ALL_DATA;
+  var lojas = Array.from(new Set(relevantData.map(function(r){return r.loja;}).filter(Boolean))).sort();
+  var lojasSet = new Set(lojas);
+  var novosSelecionados = filters.lojas.filter(function(l){ return lojasSet.has(l); });
+  filters.lojas = novosSelecionados;
+
+  document.getElementById("dd-lojas").innerHTML =
+    "<div class=\"dd-clear-row\"><button type=\"button\" class=\"dd-clear-btn\" onclick=\"clearLojasFilter()\">Limpar seleção</button></div>" +
+    lojas.map(function(l) {
+      var checkedAttr = novosSelecionados.indexOf(l) !== -1 ? " checked" : "";
+      return "<label><input type=\"checkbox\" value=\"" + l + "\" onchange=\"updateFilter('lojas')\"" + checkedAttr + "> " + l + "</label>";
+    }).join("");
+
+  var lojasBadge = document.getElementById("lojas-badge");
+  lojasBadge.textContent = novosSelecionados.length;
+  lojasBadge.style.display = novosSelecionados.length ? "" : "none";
 }
 
 function clearLojasFilter() {
   document.querySelectorAll("#dd-lojas input:checked").forEach(function(i){i.checked=false;});
   filters.lojas = [];
   document.getElementById("lojas-badge").style.display = "none";
+  refreshVendedoresDropdown();
   applyFilters();
 }
 function clearVendedoresFilter() {
   document.querySelectorAll("#dd-vend input:checked").forEach(function(i){i.checked=false;});
   filters.vendedores = [];
   document.getElementById("vend-badge").style.display = "none";
+  refreshLojasDropdown();
   applyFilters();
 }
 
