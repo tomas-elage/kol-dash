@@ -1555,10 +1555,7 @@ function renderCruzamentos() {
       "<div class='card'><div class='card-title'>Sentimento do Cliente × Produto Ofertado</div>" +
       "<div class='card-sub'>Como o cliente saiu da loja, por produto ofertado</div>" +
       linhasSent + legenda(SENT_ORDEM, CORES_SENT) + "</div>" +
-    "</div>" +
-    "<div class='card' style='margin-bottom:12px'><div class='card-title'>E-Store × Item Procurado <span style='color:var(--warn);font-size:10px;font-weight:400'>(exploratório)</span></div>" +
-    "<div class='card-sub'>Itens buscados nas "+totalEstore+" conversas com detecção de E-Store. Detecção ainda tem falso positivo — usar como direção, não número final.</div>" +
-    "<div class='hbar-list' style='margin-top:8px'>"+estoreHtml+"</div></div>";
+    "</div>";
 }
 
 function renderDesfecho() {
@@ -1606,8 +1603,8 @@ function renderDesfecho() {
         "</div>";
     }
     return "<div class='card' style='margin-bottom:12px'>" +
-      "<div class='card-title'>"+titulo+" <span style='color:var(--warn);font-size:10px;font-weight:400'>(exploratório · amostra pequena)</span></div>" +
-      "<div class='card-sub'>Comparação entre desfecho de insucesso claro e possível avanço da oferta. n baixo — direcional, não conclusivo.</div>" +
+      "<div class='card-title'>"+titulo+"</div>" +
+      "<div class='card-sub'>Comparação entre desfecho de insucesso claro e possível avanço da oferta.</div>" +
       "<div style='display:flex;gap:20px;margin-top:10px'>" +
         col(rec, "Recusou (insucesso claro)", "#ef4444") +
         "<div style='width:1px;background:var(--border)'></div>" +
@@ -1616,7 +1613,7 @@ function renderDesfecho() {
   }
 
   var notaEmp = "<div class='card' style='margin-bottom:12px'>" +
-    "<div class='card-title'>Empréstimo — Captação vs. Atendimento <span style='color:var(--warn);font-size:10px;font-weight:400'>(exploratório)</span></div>" +
+    "<div class='card-title'>Empréstimo — Captação vs. Atendimento</div>" +
     "<div style='font-size:12px;color:var(--text-muted);line-height:1.5;margin-top:6px'>" +
     "Oferta de <b>captação</b> de empréstimo (venda nova) foi detectada em apenas <b>"+totalEmprestimo+" de "+totalConversas+"</b> conversas. " +
     "A grande maioria das menções a empréstimo no caixa é <b>atendimento de contrato existente</b> (pagar/quitar/consultar parcela), não venda nova. " +
@@ -1630,7 +1627,11 @@ function renderDesfecho() {
     "</div>" +
     cardComparacao("cartao", "Cartão Riachuelo — Desfecho da Oferta") +
     cardComparacao("juros", "Venda com Juros — Desfecho da Conversa de Parcelamento") +
-    notaEmp;
+    notaEmp +
+    "<div style='font-size:11px;color:var(--text-dim);line-height:1.5;margin-top:4px;padding:10px 12px;background:var(--bg-hover);border-radius:6px'>" +
+    "<b>Nota:</b> análise exploratória sobre amostra pequena. Os números são direcionais e servem para levantar hipóteses, não como conclusão fechada. " +
+    "O aceite efetivo de cada produto raramente é verbalizado na conversa, então só a recusa explícita é medida com confiança." +
+    "</div>";
 }
 
 async function loadData() {
