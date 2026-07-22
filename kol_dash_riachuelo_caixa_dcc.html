@@ -421,6 +421,9 @@ function applyFilters() {
   if (document.getElementById("view-cl").style.display !== "none") {
     renderClienteView(FILTERED);
   }
+  if (document.getElementById("view-custom") && document.getElementById("view-custom").style.display !== "none") {
+    renderAnalisesCustom();
+  }
 }
 
 function clearFilters() {
@@ -1395,61 +1398,84 @@ function renderClienteView(data) {
   renderHBars("hbar-conc", Object.entries(concData).map(function(e){return {label:e[0],val:e[1]};}).sort(function(a,b){return b.val-a.val;}), "var(--orange)");
 }
 
+// Filtra ALL_CUSTOM_CONV pelo MESMO critério do applyFilters (status/loja/vendedor/data)
+function custoConvFiltrado() {
+  var cv = document.querySelector("input[name=\"conv_filter\"]:checked");
+  var conv = cv ? cv.value : "aprovadas";
+  var d1 = document.getElementById("date-from").value;
+  var d2 = document.getElementById("date-to").value;
+  return ALL_CUSTOM_CONV.filter(function(r) {
+    var s = (r.auditoria_status || "").toLowerCase();
+    if (normStatus(s) === "recusado") return false;
+    if (conv === "aprovadas" && normStatus(s) !== "aprovado") return false;
+    if (filters.lojas.length && filters.lojas.indexOf(r.loja) === -1) return false;
+    if (filters.vendedores.length && filters.vendedores.indexOf(r.vendedor) === -1) return false;
+    if (d1 || d2) {
+      var rd = parseDate(r.data_hora);
+      if (d1 && rd < new Date(d1)) return false;
+      if (d2 && rd > new Date(d2 + "T23:59:59")) return false;
+    }
+    return true;
+  });
+}
+
+function cap(s){ return (s||"").charAt(0).toUpperCase() + (s||"").slice(1); }
+function ehNaoIdent(s){ var l=(s||"").toLowerCase(); return l.indexOf("não identific")!==-1 || l.indexOf("nao identific")!==-1 || l==="" || l==="(n/d)"; }
+
 function renderAnalisesCustom() {
   var container = document.getElementById("custom-lojas-container");
   if (!container) return;
-  if (!ALL_CUSTOM.length) {
-    container.innerHTML = "<p style='color:var(--text-dim);font-size:13px;text-align:center;padding:20px 0'>Nenhum estudo customizado encontrado ainda.</p>";
+  var dados = custoConvFiltrado();
+  if (!dados.length) {
+    container.innerHTML = "<p style='color:var(--text-dim);font-size:13px;text-align:center;padding:20px 0'>Nenhuma conversa no filtro atual.</p>";
+    renderCruzamentos(); renderDesfecho();
     return;
   }
 
-  // Agrupa: loja -> vendedor -> tema -> linha
+  var TEMAS_ORDEM = [
+    {key:"tem_cartao", label:"Cartão Riachuelo"},
+    {key:"tem_emprestimo", label:"Empréstimo"},
+    {key:"tem_seguro", label:"Seguro"},
+    {key:"tem_juros", label:"Venda com Juros"},
+    {key:"tem_estore", label:"E-Store"}
+  ];
+
+  // agrupa loja -> vendedor
   var porLoja = {};
-  ALL_CUSTOM.forEach(function(r){
+  dados.forEach(function(r){
     var loja = r.loja || "";
     var vend = r.vendedor || "";
     if (!porLoja[loja]) porLoja[loja] = {};
-    if (!porLoja[loja][vend]) porLoja[loja][vend] = { total: +r.total_conversas||0, conv: +r.conversao_vendedor_pct||0, temas: {} };
-    porLoja[loja][vend].temas[r.tema] = {
-      mencoes: +r.mencoes||0,
-      pct: +r.pct_mencao||0,
-      convComTema: +r.convertidas_com_tema||0
-    };
+    if (!porLoja[loja][vend]) { porLoja[loja][vend] = { total:0, conv:0, temas:{} }; TEMAS_ORDEM.forEach(function(t){ porLoja[loja][vend].temas[t.key]=0; }); }
+    var v = porLoja[loja][vend];
+    v.total++;
+    if ((r.convertida||"").toLowerCase()==="sim") v.conv++;
+    TEMAS_ORDEM.forEach(function(t){ if (r[t.key]==="1") v.temas[t.key]++; });
   });
-
-  var TEMAS_ORDEM = ["Cartão Riachuelo", "Empréstimo", "Seguro", "Venda com Juros", "E-Store"];
 
   container.innerHTML = Object.keys(porLoja).sort().map(function(loja){
     var vendedores = Object.keys(porLoja[loja]).sort(function(a,b){ return porLoja[loja][b].total - porLoja[loja][a].total; });
-    var linhasTabela = vendedores.map(function(v){
-      var dv = porLoja[loja][v];
-      var celulas = TEMAS_ORDEM.map(function(t){
-        var td = dv.temas[t];
-        if (!td) return "<td class='num' style='color:var(--text-dim)'>—</td>";
-        return "<td class='num'>" + td.pct + "%</td>";
-      }).join("");
-      return "<tr><td>" + v + "</td><td class='num'>" + dv.total + "</td><td class='num' style='color:var(--cyan);font-weight:600'>" + dv.conv + "%</td>" + celulas + "</tr>";
-    }).join("");
-
     var tblId = "tbl-custom-" + loja.replace(/[^a-zA-Z0-9]/g, "");
-    var colsFixas = [
-      {rot:"Vendedor", align:"left"},
-      {rot:"Conversas", align:"right"},
-      {rot:"Conversão", align:"right"}
-    ];
+    var colsFixas = [{rot:"Vendedor",align:"left"},{rot:"Conversas",align:"right"},{rot:"Conversão",align:"right"}];
     var headerHtml = colsFixas.map(function(c,i){
-      return "<th onclick=\"sortTable('" + tblId + "'," + i + ")\" style='text-align:" + c.align + "'>" + c.rot + "<span class='sort-arrow' id='" + tblId + "-" + i + "'>↕</span></th>";
+      return "<th onclick=\"sortTable('"+tblId+"',"+i+")\" style='text-align:"+c.align+"'>"+c.rot+"<span class='sort-arrow' id='"+tblId+"-"+i+"'>↕</span></th>";
     }).join("") + TEMAS_ORDEM.map(function(t,j){
-      var colIdx = colsFixas.length + j;
-      return "<th onclick=\"sortTable('" + tblId + "'," + colIdx + ")\" style='text-align:right'>" + t + "<span class='sort-arrow' id='" + tblId + "-" + colIdx + "'>↕</span></th>";
+      var ci = colsFixas.length + j;
+      return "<th onclick=\"sortTable('"+tblId+"',"+ci+")\" style='text-align:right'>"+t.label+"<span class='sort-arrow' id='"+tblId+"-"+ci+"'>↕</span></th>";
     }).join("");
-
+    var linhas = vendedores.map(function(v){
+      var dv = porLoja[loja][v];
+      var convPct = dv.total ? Math.round(dv.conv/dv.total*100) : 0;
+      var celulas = TEMAS_ORDEM.map(function(t){
+        var pct = dv.total ? Math.round(dv.temas[t.key]/dv.total*100) : 0;
+        return "<td class='num'>"+pct+"%</td>";
+      }).join("");
+      return "<tr><td>"+v+"</td><td class='num'>"+dv.total+"</td><td class='num' style='color:var(--cyan);font-weight:600'>"+convPct+"%</td>"+celulas+"</tr>";
+    }).join("");
     return "<div class='card' style='margin-bottom:12px'>" +
-      "<div class='card-title'>" + loja + "</div>" +
+      "<div class='card-title'>"+loja+"</div>" +
       "<div class='card-sub'>% de menção ao tema por vendedor, entre as conversas dessa loja — clique no título para ordenar</div>" +
-      "<div class='tbl-wrap' style='max-height:none'><table class='stbl' id='" + tblId + "'><thead><tr>" +
-      headerHtml +
-      "</tr></thead><tbody>" + linhasTabela + "</tbody></table></div>" +
+      "<div class='tbl-wrap' style='max-height:none'><table class='stbl' id='"+tblId+"'><thead><tr>"+headerHtml+"</tr></thead><tbody>"+linhas+"</tbody></table></div>" +
       "</div>";
   }).join("");
 
@@ -1460,7 +1486,8 @@ function renderAnalisesCustom() {
 function renderCruzamentos() {
   var box = document.getElementById("custom-cruzamentos");
   if (!box) return;
-  if (!ALL_CUSTOM_CONV.length) { box.innerHTML = ""; return; }
+  var dados = custoConvFiltrado();
+  if (!dados.length) { box.innerHTML = ""; return; }
 
   var TEMAS = [
     {key:"tem_cartao", label:"Cartão Riachuelo"},
@@ -1468,84 +1495,39 @@ function renderCruzamentos() {
     {key:"tem_seguro", label:"Seguro"},
     {key:"tem_juros", label:"Venda com Juros"}
   ];
-  // Perfil: ordem e cores fixas. "Não identificado" é EXCLUÍDO do gráfico.
-  var PERFIL_ORDEM = ["Decidido", "Indeciso", "Pesquisador"];
-  var CORES_PERFIL = { "Decidido":"#22c55e", "Indeciso":"#f59e0b", "Pesquisador":"#8b5cf6" };
-  // Sentimento: ordem fixa frustrado → neutro → valorizado → encantado.
-  var SENT_ORDEM = ["frustrado", "neutro", "valorizado", "encantado"];
-  var CORES_SENT = { "frustrado":"#ef4444", "neutro":"#94a3b8", "valorizado":"#06b6d4", "encantado":"#22c55e" };
+  var PERFIL_ORDEM = ["Decidido","Indeciso","Pesquisador"];
+  var CORES_PERFIL = {"Decidido":"#22c55e","Indeciso":"#f59e0b","Pesquisador":"#8b5cf6"};
+  var SENT_ORDEM = ["frustrado","neutro","valorizado","encantado"];
+  var CORES_SENT = {"frustrado":"#ef4444","neutro":"#94a3b8","valorizado":"#06b6d4","encantado":"#22c55e"};
   var AMOSTRA_MINIMA = 15;
 
-  function capitaliza(s){ return (s||"").charAt(0).toUpperCase() + (s||"").slice(1); }
-  function ehNaoIdent(s){ var l=(s||"").toLowerCase(); return l.indexOf("não identific")!==-1 || l.indexOf("nao identific")!==-1 || l==="" ; }
-
-  // Barra empilhada 100% seguindo uma ORDEM fixa de categorias, com rótulo de % dentro do segmento.
-  function barraEmpilhada(mapaCont, ordem, cores) {
-    var total = ordem.reduce(function(a,k){return a+(mapaCont[k]||0);}, 0);
+  function barra(mapa, ordem, cores) {
+    var total = ordem.reduce(function(a,k){return a+(mapa[k]||0);},0);
     if (!total) return {html:"<div style='color:var(--text-dim);font-size:11px'>sem dados</div>", total:0};
-    var segs = ordem.filter(function(k){return (mapaCont[k]||0)>0;}).map(function(k){
-      var pct = Math.round(mapaCont[k]/total*100);
-      var mostraLabel = pct >= 8; // só escreve o % se o segmento for largo o suficiente
-      return "<div title='"+capitaliza(k)+": "+mapaCont[k]+" ("+pct+"%)' style='width:"+pct+"%;background:"+(cores[k]||"#4a5568")+";height:100%;display:flex;align-items:center;justify-content:center'>" +
-             (mostraLabel ? "<span style='font-size:10px;color:#fff;font-weight:600'>"+pct+"%</span>" : "") + "</div>";
+    var segs = ordem.filter(function(k){return (mapa[k]||0)>0;}).map(function(k){
+      var pct = Math.round(mapa[k]/total*100);
+      return "<div title='"+cap(k)+": "+mapa[k]+" ("+pct+"%)' style='width:"+pct+"%;background:"+(cores[k]||"#4a5568")+";height:100%;display:flex;align-items:center;justify-content:center'>"+(pct>=8?"<span style='font-size:10px;color:#fff;font-weight:600'>"+pct+"%</span>":"")+"</div>";
     }).join("");
     return {html:"<div style='display:flex;height:20px;border-radius:3px;overflow:hidden'>"+segs+"</div>", total:total};
   }
-
   function legenda(ordem, cores) {
-    return "<div style='display:flex;flex-wrap:wrap;gap:10px;margin-top:8px'>" +
-      ordem.map(function(k){
-        return "<span style='font-size:10px;color:var(--text-muted);display:flex;align-items:center;gap:4px'><span style='width:9px;height:9px;border-radius:2px;background:"+cores[k]+";display:inline-block'></span>"+capitaliza(k)+"</span>";
-      }).join("") + "</div>";
+    return "<div style='display:flex;flex-wrap:wrap;gap:10px;margin-top:8px'>"+ordem.map(function(k){return "<span style='font-size:10px;color:var(--text-muted);display:flex;align-items:center;gap:4px'><span style='width:9px;height:9px;border-radius:2px;background:"+cores[k]+";display:inline-block'></span>"+cap(k)+"</span>";}).join("")+"</div>";
   }
 
-  // ── Bloco 1: Perfil × produto (exclui não-identificado, normaliza caixa) ──
   var linhasPerfil = TEMAS.map(function(t){
     var mapa = {};
-    ALL_CUSTOM_CONV.forEach(function(r){
-      if (r[t.key] === "1") {
-        var p = (r.perfil_cliente||"").trim();
-        if (ehNaoIdent(p)) return;
-        p = capitaliza(p.toLowerCase()); // "decidido"/"Decidido" -> "Decidido"
-        mapa[p] = (mapa[p]||0)+1;
-      }
-    });
-    var b = barraEmpilhada(mapa, PERFIL_ORDEM, CORES_PERFIL);
+    dados.forEach(function(r){ if (r[t.key]==="1") { var p=(r.perfil_cliente||"").trim(); if(ehNaoIdent(p))return; p=cap(p.toLowerCase()); mapa[p]=(mapa[p]||0)+1; } });
+    var b = barra(mapa, PERFIL_ORDEM, CORES_PERFIL);
     return "<div style='margin-bottom:10px'><div style='font-size:11px;color:var(--text-muted);margin-bottom:3px'>"+t.label+" <span style='color:var(--text-dim)'>(n="+b.total+")</span></div>"+b.html+"</div>";
   }).join("");
 
-  // ── Bloco 2: Sentimento × produto (ordem fixa, com %) ─────────────
   var linhasSent = TEMAS.map(function(t){
     var mapa = {};
-    ALL_CUSTOM_CONV.forEach(function(r){
-      if (r[t.key] === "1") {
-        var s = (r.sentimento||"").trim().toLowerCase();
-        if (ehNaoIdent(s)) return;
-        mapa[s] = (mapa[s]||0)+1;
-      }
-    });
-    var b = barraEmpilhada(mapa, SENT_ORDEM, CORES_SENT);
+    dados.forEach(function(r){ if (r[t.key]==="1") { var s=(r.sentimento||"").trim().toLowerCase(); if(ehNaoIdent(s))return; mapa[s]=(mapa[s]||0)+1; } });
+    var b = barra(mapa, SENT_ORDEM, CORES_SENT);
     var aviso = b.total < AMOSTRA_MINIMA ? " <span style='color:var(--warn)'>⚠ amostra baixa</span>" : "";
     return "<div style='margin-bottom:10px'><div style='font-size:11px;color:var(--text-muted);margin-bottom:3px'>"+t.label+" <span style='color:var(--text-dim)'>(n="+b.total+")</span>"+aviso+"</div>"+b.html+"</div>";
   }).join("");
-
-  // ── Bloco 3: E-Store × item procurado (já tratado pelo DE-PARA na origem) ──
-  var itemCount = {};
-  var totalEstore = 0;
-  ALL_CUSTOM_CONV.forEach(function(r){
-    if (r.tem_estore === "1") {
-      totalEstore++;
-      var it = (r.produto_procurado||"").trim();
-      if (!ehNaoIdent(it)) itemCount[it] = (itemCount[it]||0)+1;
-    }
-  });
-  var itemData = Object.entries(itemCount).map(function(e){return {label:e[0],val:e[1]};}).sort(function(a,b){return b.val-a.val;}).slice(0,10);
-  var estoreHtml = itemData.length
-    ? itemData.map(function(d){
-        var mx = itemData[0].val;
-        return "<div class='hbar-row'><span class='hbar-lbl' title='"+d.label+"'>"+d.label+"</span><div class='hbar-track'><div class='hbar-fill' style='width:"+Math.round(d.val/mx*100)+"%;background:var(--cyan)'></div></div><span class='hbar-val'>"+d.val+"</span></div>";
-      }).join("")
-    : "<div style='color:var(--text-dim);font-size:11px'>Nenhum item identificado nas conversas com E-Store</div>";
 
   box.innerHTML =
     "<div class='row2' style='margin-bottom:12px'>" +
@@ -1561,77 +1543,66 @@ function renderCruzamentos() {
 function renderDesfecho() {
   var box = document.getElementById("custom-desfecho");
   if (!box) return;
-  if (!ALL_DESFECHO.length) { box.innerHTML = ""; return; }
+  var dados = custoConvFiltrado();
+  if (!dados.length) { box.innerHTML = ""; return; }
 
-  // indexa por produto -> grupo
-  var porProd = {};
-  var totalConversas = 0, totalEmprestimo = 0;
-  ALL_DESFECHO.forEach(function(r){
-    if (!porProd[r.produto]) porProd[r.produto] = {};
-    porProd[r.produto][r.grupo] = r;
-    totalConversas = +r.total_conversas || totalConversas;
-    if (r.produto === "emprestimo") totalEmprestimo = +r.total_ofertas_produto || totalEmprestimo;
-  });
+  var totalConversas = dados.length;
 
-  function fmtDur(seg){ seg = +seg||0; return Math.floor(seg/60) + "m" + (seg%60) + "s"; }
-  function parseBreak(s){ // "decidido:10|indeciso:4" -> [[decidido,10],...]
-    if (!s) return [];
-    return s.split("|").map(function(p){ var kv = p.split(":"); return [kv[0], +kv[1]||0]; });
-  }
-  function cap(s){ return (s||"").charAt(0).toUpperCase()+(s||"").slice(1); }
-  function breakStr(s){
-    var arr = parseBreak(s); if (!arr.length) return "—";
+  function fmtDur(seg){ seg=+seg||0; return Math.floor(seg/60)+"m"+(seg%60)+"s"; }
+  function breakStr(mapa){
+    var arr = Object.entries(mapa).sort(function(a,b){return b[1]-a[1];});
+    if (!arr.length) return "—";
     var tot = arr.reduce(function(a,b){return a+b[1];},0);
     return arr.map(function(e){ return cap(e[0])+" "+Math.round(e[1]/tot*100)+"%"; }).join(" · ");
   }
 
-  // Card de comparação de um produto (recusou vs aceite_incerto)
-  function cardComparacao(prod, titulo) {
-    var g = porProd[prod] || {};
-    var rec = g["recusou"] || {}, inc = g["aceite_incerto"] || {};
-    var nRec = +rec.n||0, nInc = +inc.n||0;
-    function col(g, rotulo, cor){
-      var n = +g.n||0;
-      return "<div style='flex:1'>" +
-        "<div style='font-size:11px;font-weight:600;color:"+cor+";margin-bottom:6px'>"+rotulo+" <span style='color:var(--text-dim);font-weight:400'>(n="+n+")</span></div>" +
-        (n ?
-          "<div class='desf-metric'><span>Duração média</span><b>"+fmtDur(g.dur_media_seg)+"</b></div>" +
-          "<div class='desf-metric'><span>Itens comprados (média)</span><b>"+(g.itens_media||"0")+"</b></div>" +
-          "<div class='desf-metric'><span>Perfil</span><b style='font-size:10px'>"+breakStr(g.perfil)+"</b></div>" +
-          "<div class='desf-metric'><span>Sentimento</span><b style='font-size:10px'>"+breakStr(g.sentimento)+"</b></div>"
-          : "<div style='font-size:11px;color:var(--text-dim)'>sem casos</div>") +
-        "</div>";
-    }
-    return "<div class='card' style='margin-bottom:12px'>" +
-      "<div class='card-title'>"+titulo+"</div>" +
-      "<div class='card-sub'>Comparação entre desfecho de insucesso claro e possível avanço da oferta.</div>" +
-      "<div style='display:flex;gap:20px;margin-top:10px'>" +
-        col(rec, "Recusou (insucesso claro)", "#ef4444") +
-        "<div style='width:1px;background:var(--border)'></div>" +
-        col(inc, "Aceite incerto (talvez avançou)", "#06b6d4") +
-      "</div></div>";
+  // agrupa desfecho de um produto: retorna {recusou:[...], aceite_incerto:[...]}
+  function grupos(campoDesf){
+    var g = {recusou:[], aceite_incerto:[]};
+    dados.forEach(function(r){ var d=r[campoDesf]; if(d==="recusou"||d==="aceite_incerto") g[d].push(r); });
+    return g;
+  }
+  function resumo(arr){
+    var n = arr.length;
+    if (!n) return {n:0};
+    var dur = Math.round(arr.reduce(function(a,b){return a+(+b.duracao_seg||0);},0)/n);
+    var itens = (arr.reduce(function(a,b){return a+(+b.qtd_itens||0);},0)/n).toFixed(1);
+    var perfil={}, sent={};
+    arr.forEach(function(r){ var p=ehNaoIdent(r.perfil_cliente)?"(n/d)":cap((r.perfil_cliente||"").toLowerCase()); perfil[p]=(perfil[p]||0)+1; var s=ehNaoIdent(r.sentimento)?"(n/d)":(r.sentimento||"").toLowerCase(); sent[s]=(sent[s]||0)+1; });
+    return {n:n, dur:dur, itens:itens, perfil:perfil, sent:sent};
   }
 
-  var notaEmp = "<div class='card' style='margin-bottom:12px'>" +
-    "<div class='card-title'>Empréstimo — Captação vs. Atendimento</div>" +
-    "<div style='font-size:12px;color:var(--text-muted);line-height:1.5;margin-top:6px'>" +
-    "Oferta de <b>captação</b> de empréstimo (venda nova) foi detectada em apenas <b>"+totalEmprestimo+" de "+totalConversas+"</b> conversas. " +
-    "A grande maioria das menções a empréstimo no caixa é <b>atendimento de contrato existente</b> (pagar/quitar/consultar parcela), não venda nova. " +
-    "Amostra insuficiente para cruzar desfecho — o insight aqui é a própria raridade da captação no PDV." +
-    "</div></div>";
+  function card(campoDesf, titulo) {
+    var g = grupos(campoDesf);
+    var rec = resumo(g.recusou), inc = resumo(g.aceite_incerto);
+    function col(r, rotulo, cor){
+      return "<div style='flex:1'><div style='font-size:11px;font-weight:600;color:"+cor+";margin-bottom:6px'>"+rotulo+" <span style='color:var(--text-dim);font-weight:400'>(n="+r.n+")</span></div>" +
+        (r.n ?
+          "<div class='desf-metric'><span>Duração média</span><b>"+fmtDur(r.dur)+"</b></div>" +
+          "<div class='desf-metric'><span>Itens comprados (média)</span><b>"+r.itens+"</b></div>" +
+          "<div class='desf-metric'><span>Perfil</span><b style='font-size:10px'>"+breakStr(r.perfil)+"</b></div>" +
+          "<div class='desf-metric'><span>Sentimento</span><b style='font-size:10px'>"+breakStr(r.sent)+"</b></div>"
+          : "<div style='font-size:11px;color:var(--text-dim)'>sem casos no filtro atual</div>") + "</div>";
+    }
+    return "<div class='card' style='margin-bottom:12px'><div class='card-title'>"+titulo+"</div>" +
+      "<div class='card-sub'>Comparação entre desfecho de insucesso claro e possível avanço da oferta.</div>" +
+      "<div style='display:flex;gap:20px;margin-top:10px'>" + col(rec,"Recusou (insucesso claro)","#ef4444") + "<div style='width:1px;background:var(--border)'></div>" + col(inc,"Aceite incerto (talvez avançou)","#06b6d4") + "</div></div>";
+  }
+
+  // empréstimo: conta ofertas de captação (desf preenchido) no filtro
+  var empOfertas = dados.filter(function(r){ return r.desf_emprestimo && r.desf_emprestimo!==""; }).length;
+  var notaEmp = "<div class='card' style='margin-bottom:12px'><div class='card-title'>Empréstimo — Captação vs. Atendimento</div>" +
+    "<div style='font-size:12px;color:var(--text-muted);line-height:1.5;margin-top:6px'>Oferta de <b>captação</b> de empréstimo (venda nova) detectada em <b>"+empOfertas+" de "+totalConversas+"</b> conversas no filtro atual. A maioria das menções a empréstimo no caixa é <b>atendimento de contrato existente</b> (pagar/quitar/consultar parcela), não venda nova.</div></div>";
 
   box.innerHTML =
     "<div class='card' style='margin-bottom:12px;background:transparent;border:none;padding:0'>" +
       "<div class='card-title' style='font-size:15px'>Desfecho das Ofertas de Produtos Financeiros</div>" +
-      "<div class='card-sub'>Análise exploratória do que acontece após a oferta. O aceite efetivo raramente é verbalizado na conversa; por isso as categorias são \"recusou\" (recusa explícita, confiável) e \"aceite incerto\" (sinais de que o cadastro avançou, como pedir CPF). Não é taxa de aceitação.</div>" +
+      "<div class='card-sub'>Análise do que acontece após a oferta. O aceite efetivo raramente é verbalizado; por isso as categorias são \"recusou\" (recusa explícita, confiável) e \"aceite incerto\" (sinais de que o cadastro avançou, como pedir CPF). Não é taxa de aceitação.</div>" +
     "</div>" +
-    cardComparacao("cartao", "Cartão Riachuelo — Desfecho da Oferta") +
-    cardComparacao("juros", "Venda com Juros — Desfecho da Conversa de Parcelamento") +
+    card("desf_cartao", "Cartão Riachuelo — Desfecho da Oferta") +
+    card("desf_juros", "Venda com Juros — Desfecho da Conversa de Parcelamento") +
     notaEmp +
-    "<div style='font-size:11px;color:var(--text-dim);line-height:1.5;margin-top:4px;padding:10px 12px;background:var(--bg-hover);border-radius:6px'>" +
-    "<b>Nota:</b> análise exploratória sobre amostra pequena. Os números são direcionais e servem para levantar hipóteses, não como conclusão fechada. " +
-    "O aceite efetivo de cada produto raramente é verbalizado na conversa, então só a recusa explícita é medida com confiança." +
-    "</div>";
+    "<div style='font-size:11px;color:var(--text-dim);line-height:1.5;margin-top:4px;padding:10px 12px;background:var(--bg-hover);border-radius:6px'><b>Nota:</b> análise sobre amostra pequena — os números são direcionais e servem para levantar hipóteses, não como conclusão fechada. O aceite efetivo raramente é verbalizado, então só a recusa explícita é medida com confiança.</div>";
 }
 
 async function loadData() {
@@ -1658,20 +1629,10 @@ async function loadData() {
       ALL_ITENS = todosItens.filter(function(r){ return LOJAS_FIXAS.indexOf((r.loja||"").trim()) !== -1; });
     } catch(e3) { ALL_ITENS = []; }
     try {
-      var customRes = await fetch(GSHEET_CUSTOM);
-      var customText = await customRes.text();
-      ALL_CUSTOM = rowsToObjects(parseCSV(customText));
-    } catch(e4) { ALL_CUSTOM = []; }
-    try {
       var convRes = await fetch(GSHEET_CUSTOM_CONV);
       var convText = await convRes.text();
       ALL_CUSTOM_CONV = rowsToObjects(parseCSV(convText));
     } catch(e5) { ALL_CUSTOM_CONV = []; }
-    try {
-      var desfRes = await fetch(GSHEET_DESFECHO);
-      var desfText = await desfRes.text();
-      ALL_DESFECHO = rowsToObjects(parseCSV(desfText));
-    } catch(e6) { ALL_DESFECHO = []; }
     // Não pré-preenche o filtro de data — carrega sempre com "Todas as datas"
     document.getElementById("date-label").textContent = "Todas as datas";
     document.getElementById("last-update").textContent = "Atualizado: " + new Date().toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",hour:"2-digit",minute:"2-digit"});
