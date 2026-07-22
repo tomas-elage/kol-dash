@@ -258,6 +258,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     </div>
   </div>
   <div id="custom-lojas-container"></div>
+  <div id="custom-cruzamentos"></div>
 </div>
 <script>
 
@@ -265,7 +266,9 @@ const GSHEET_CSV = "https://docs.google.com/spreadsheets/d/11soNFvVniw14T5pvI9BQ
 const GSHEET_DEST = "https://docs.google.com/spreadsheets/d/11soNFvVniw14T5pvI9BQ1n8ldpd9R9gep2GizvAmHBQ/gviz/tq?tqx=out:csv&sheet=destaques";
 const GSHEET_ITENS = "https://docs.google.com/spreadsheets/d/11soNFvVniw14T5pvI9BQ1n8ldpd9R9gep2GizvAmHBQ/gviz/tq?tqx=out:csv&sheet=itens_comprados";
 const GSHEET_CUSTOM = "https://docs.google.com/spreadsheets/d/11soNFvVniw14T5pvI9BQ1n8ldpd9R9gep2GizvAmHBQ/gviz/tq?tqx=out:csv&sheet=analises_custom";
+const GSHEET_CUSTOM_CONV = "https://docs.google.com/spreadsheets/d/11soNFvVniw14T5pvI9BQ1n8ldpd9R9gep2GizvAmHBQ/gviz/tq?tqx=out:csv&sheet=analises_custom_conversas";
 var ALL_CUSTOM = [];
+var ALL_CUSTOM_CONV = [];
 const LOJAS_FIXAS = ["Center Norte - Caixa", "Center Norte - DCC"];
 const DE_PARA = {produto:{},motivo_visita:{},objecao:{}};
 
@@ -1444,6 +1447,107 @@ function renderAnalisesCustom() {
       "</tr></thead><tbody>" + linhasTabela + "</tbody></table></div>" +
       "</div>";
   }).join("");
+
+  renderCruzamentos();
+}
+
+function renderCruzamentos() {
+  var box = document.getElementById("custom-cruzamentos");
+  if (!box) return;
+  if (!ALL_CUSTOM_CONV.length) { box.innerHTML = ""; return; }
+
+  var TEMAS = [
+    {key:"tem_cartao", label:"Cartão Riachuelo"},
+    {key:"tem_emprestimo", label:"Empréstimo"},
+    {key:"tem_seguro", label:"Seguro"},
+    {key:"tem_juros", label:"Venda com Juros"}
+  ];
+  var CORES_PERFIL = { "Decidido":"#22c55e", "Indeciso":"#f59e0b", "Pesquisador":"#8b5cf6", "(não identificado)":"#4a5568" };
+  var CORES_SENT = { "encantado":"#22c55e", "valorizado":"#06b6d4", "neutro":"#94a3b8", "frustrado":"#ef4444", "(não identificado)":"#4a5568" };
+  var AMOSTRA_MINIMA = 15; // abaixo disso, marca baixa confiança
+
+  function capitaliza(s){ return (s||"").charAt(0).toUpperCase() + (s||"").slice(1); }
+
+  // Constrói barra empilhada 100% a partir de um mapa {categoria: contagem}
+  function barraEmpilhada(mapaCont, cores) {
+    var total = Object.values(mapaCont).reduce(function(a,b){return a+b;}, 0);
+    if (!total) return {html:"<div style='color:var(--text-dim);font-size:11px'>sem dados</div>", total:0};
+    var segs = Object.keys(mapaCont).filter(function(k){return mapaCont[k]>0;})
+      .sort(function(a,b){return mapaCont[b]-mapaCont[a];})
+      .map(function(k){
+        var pct = Math.round(mapaCont[k]/total*100);
+        var cor = cores[k] || "#4a5568";
+        return "<div title='"+k+": "+mapaCont[k]+" ("+pct+"%)' style='width:"+pct+"%;background:"+cor+";height:100%'></div>";
+      }).join("");
+    return {html:"<div style='display:flex;height:18px;border-radius:3px;overflow:hidden'>"+segs+"</div>", total:total};
+  }
+
+  function legenda(cores) {
+    return "<div style='display:flex;flex-wrap:wrap;gap:10px;margin-top:8px'>" +
+      Object.keys(cores).map(function(k){
+        return "<span style='font-size:10px;color:var(--text-muted);display:flex;align-items:center;gap:4px'><span style='width:9px;height:9px;border-radius:2px;background:"+cores[k]+";display:inline-block'></span>"+capitaliza(k)+"</span>";
+      }).join("") + "</div>";
+  }
+
+  // ── Bloco 1: Perfil do cliente × produto ofertado ──────────────────
+  var linhasPerfil = TEMAS.map(function(t){
+    var mapa = {};
+    ALL_CUSTOM_CONV.forEach(function(r){
+      if (r[t.key] === "1") {
+        var p = r.perfil_cliente || "(não identificado)";
+        mapa[p] = (mapa[p]||0)+1;
+      }
+    });
+    var b = barraEmpilhada(mapa, CORES_PERFIL);
+    return "<div style='margin-bottom:10px'><div style='font-size:11px;color:var(--text-muted);margin-bottom:3px'>"+t.label+" <span style='color:var(--text-dim)'>(n="+b.total+")</span></div>"+b.html+"</div>";
+  }).join("");
+
+  // ── Bloco 2: Sentimento de saída × produto ofertado ───────────────
+  var linhasSent = TEMAS.map(function(t){
+    var mapa = {};
+    ALL_CUSTOM_CONV.forEach(function(r){
+      if (r[t.key] === "1") {
+        var s = (r.sentimento||"(não identificado)").toLowerCase();
+        mapa[s] = (mapa[s]||0)+1;
+      }
+    });
+    var b = barraEmpilhada(mapa, CORES_SENT);
+    var aviso = b.total < AMOSTRA_MINIMA ? " <span style='color:var(--warn)'>⚠ amostra baixa</span>" : "";
+    return "<div style='margin-bottom:10px'><div style='font-size:11px;color:var(--text-muted);margin-bottom:3px'>"+t.label+" <span style='color:var(--text-dim)'>(n="+b.total+")</span>"+aviso+"</div>"+b.html+"</div>";
+  }).join("");
+
+  // ── Bloco 3: E-Store × item procurado (exploratório) ──────────────
+  var itemCount = {};
+  var totalEstore = 0;
+  ALL_CUSTOM_CONV.forEach(function(r){
+    if (r.tem_estore === "1") {
+      totalEstore++;
+      var it = r.produto_procurado || "(não identificado)";
+      if (it.toLowerCase().indexOf("não identific") === -1 && it.toLowerCase().indexOf("nao identific") === -1) {
+        itemCount[it] = (itemCount[it]||0)+1;
+      }
+    }
+  });
+  var itemData = Object.entries(itemCount).map(function(e){return {label:e[0],val:e[1]};}).sort(function(a,b){return b.val-a.val;}).slice(0,10);
+  var estoreHtml = itemData.length
+    ? itemData.map(function(d){
+        var mx = itemData[0].val;
+        return "<div class='hbar-row'><span class='hbar-lbl' title='"+d.label+"'>"+d.label+"</span><div class='hbar-track'><div class='hbar-fill' style='width:"+Math.round(d.val/mx*100)+"%;background:var(--cyan)'></div></div><span class='hbar-val'>"+d.val+"</span></div>";
+      }).join("")
+    : "<div style='color:var(--text-dim);font-size:11px'>Nenhum item identificado nas conversas com E-Store</div>";
+
+  box.innerHTML =
+    "<div class='row2' style='margin-bottom:12px'>" +
+      "<div class='card'><div class='card-title'>Perfil do Cliente × Produto Ofertado</div>" +
+      "<div class='card-sub'>Distribuição do perfil de cliente em cada produto ofertado</div>" +
+      linhasPerfil + legenda(CORES_PERFIL) + "</div>" +
+      "<div class='card'><div class='card-title'>Sentimento do Cliente × Produto Ofertado</div>" +
+      "<div class='card-sub'>Como o cliente saiu da loja, por produto ofertado</div>" +
+      linhasSent + legenda(CORES_SENT) + "</div>" +
+    "</div>" +
+    "<div class='card' style='margin-bottom:12px'><div class='card-title'>E-Store × Item Procurado <span style='color:var(--warn);font-size:10px;font-weight:400'>(exploratório)</span></div>" +
+    "<div class='card-sub'>Itens buscados nas "+totalEstore+" conversas com detecção de E-Store. Detecção ainda tem falso positivo — usar como direção, não número final.</div>" +
+    "<div class='hbar-list' style='margin-top:8px'>"+estoreHtml+"</div></div>";
 }
 
 async function loadData() {
@@ -1474,6 +1578,11 @@ async function loadData() {
       var customText = await customRes.text();
       ALL_CUSTOM = rowsToObjects(parseCSV(customText));
     } catch(e4) { ALL_CUSTOM = []; }
+    try {
+      var convRes = await fetch(GSHEET_CUSTOM_CONV);
+      var convText = await convRes.text();
+      ALL_CUSTOM_CONV = rowsToObjects(parseCSV(convText));
+    } catch(e5) { ALL_CUSTOM_CONV = []; }
     // Não pré-preenche o filtro de data — carrega sempre com "Todas as datas"
     document.getElementById("date-label").textContent = "Todas as datas";
     document.getElementById("last-update").textContent = "Atualizado: " + new Date().toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",hour:"2-digit",minute:"2-digit"});
