@@ -235,8 +235,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <div class="card"><div class="card-title">Perfil Comportamental</div><div class="donut-row" style="align-items:center;max-width:200px;margin:0 auto"><canvas id="chartPerfil" width="70" height="70"></canvas><div class="donut-legend" id="leg-perfil"></div></div></div>
     <div class="card" style="min-height:200px;display:flex;flex-direction:column"><div class="card-title">Perfil que Mais Converte</div><div id="perfil-converte" style="flex:1;display:flex;align-items:center;justify-content:center"></div></div>
     <div class="card" style="min-height:200px"><div class="card-title">Sentimento dos Clientes</div><div id="sentimento-bars" style="margin-top:12px"></div></div>
-    <div class="card"><div class="card-title">Para Uso Próprio?</div><div class="donut-row" style="align-items:center;max-width:200px;margin:0 auto"><canvas id="chartUso" width="70" height="70"></canvas><div class="donut-legend" id="leg-uso"></div></div></div>
-    <div class="card"><div class="card-title">Procurou Algo Específico?</div><div class="donut-row" style="align-items:center;max-width:200px;margin:0 auto"><canvas id="chartEsp" width="70" height="70"></canvas><div class="donut-legend" id="leg-esp"></div></div></div>
+    <div class="card"><div class="card-title">Tipo de Uso</div><div class="donut-row" style="align-items:center;max-width:200px;margin:0 auto"><canvas id="chartUso" width="70" height="70"></canvas><div class="donut-legend" id="leg-uso"></div></div></div>
+    <div class="card"><div class="card-title">Procurou Algo Específico?</div><div style="display:flex;align-items:center;justify-content:center;min-height:90px;color:var(--text-dim);font-size:13px;font-style:italic">Em breve</div></div>
   </div>
   <div class="row2" style="margin-bottom:12px">
     <div class="card"><div class="card-title">Motivo da Visita</div><div class="hbar-list" id="hbar-motivo" style="margin-top:8px"></div></div>
@@ -1225,13 +1225,7 @@ function renderClienteView(data) {
   });
   updateDonut("chartUso","leg-uso",[uso["sim"],uso["nao"],uso["nd"]],["#22c55e","#f59e0b","#4a5568"],["Uso próprio","Presente","Não identificado"],n);
 
-  // Procurou algo específico — coluna "Produto procurado", ignora desconsiderável
-  var IGNORAR_ESP = ["desconsiderar","não aplicável","nao aplicavel"];
-  var espSim = data.filter(function(r){
-    var v = (r["Produto procurado"]||"").trim().toLowerCase();
-    return v.length > 0 && IGNORAR_ESP.indexOf(v) === -1;
-  }).length;
-  updateDonut("chartEsp","leg-esp",[espSim,n-espSim],["#06b6d4","#4a5568"],["Com produto específico","Sem produto específico"],n);
+  // "Procurou algo específico" — bloco em "Em breve", render desativado.
 
   // Motivo da visita — coluna "Motivo da visita?" com DE-PARA motivo_visita (sem N/A)
   var IGNORAR_MOTIVO = ["não aplicável","nao aplicavel","não se aplica","nao se aplica","desconsiderar",""];
