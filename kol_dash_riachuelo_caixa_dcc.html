@@ -146,6 +146,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .dest-convs.open{display:block}
 .dest-conv-row{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;margin-bottom:3px;background:rgba(255,255,255,.03);border-radius:5px;text-decoration:none;color:var(--text-muted);font-size:11px}
 .dest-conv-row:hover{background:rgba(255,255,255,.07);color:var(--text)}
+.desf-metric{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text-muted);padding:3px 0;border-bottom:1px solid var(--border)}
+.desf-metric b{color:var(--text)}
 </style>
 </head>
 <body>
@@ -259,6 +261,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   </div>
   <div id="custom-lojas-container"></div>
   <div id="custom-cruzamentos"></div>
+  <div id="custom-desfecho"></div>
 </div>
 <script>
 
@@ -267,8 +270,10 @@ const GSHEET_DEST = "https://docs.google.com/spreadsheets/d/11soNFvVniw14T5pvI9B
 const GSHEET_ITENS = "https://docs.google.com/spreadsheets/d/11soNFvVniw14T5pvI9BQ1n8ldpd9R9gep2GizvAmHBQ/gviz/tq?tqx=out:csv&sheet=itens_comprados";
 const GSHEET_CUSTOM = "https://docs.google.com/spreadsheets/d/11soNFvVniw14T5pvI9BQ1n8ldpd9R9gep2GizvAmHBQ/gviz/tq?tqx=out:csv&sheet=analises_custom";
 const GSHEET_CUSTOM_CONV = "https://docs.google.com/spreadsheets/d/11soNFvVniw14T5pvI9BQ1n8ldpd9R9gep2GizvAmHBQ/gviz/tq?tqx=out:csv&sheet=analises_custom_conversas";
+const GSHEET_DESFECHO = "https://docs.google.com/spreadsheets/d/11soNFvVniw14T5pvI9BQ1n8ldpd9R9gep2GizvAmHBQ/gviz/tq?tqx=out:csv&sheet=analises_desfecho";
 var ALL_CUSTOM = [];
 var ALL_CUSTOM_CONV = [];
+var ALL_DESFECHO = [];
 const LOJAS_FIXAS = ["Center Norte - Caixa", "Center Norte - DCC"];
 const DE_PARA = {produto:{},motivo_visita:{},objecao:{}};
 
@@ -1449,6 +1454,7 @@ function renderAnalisesCustom() {
   }).join("");
 
   renderCruzamentos();
+  renderDesfecho();
 }
 
 function renderCruzamentos() {
@@ -1555,6 +1561,78 @@ function renderCruzamentos() {
     "<div class='hbar-list' style='margin-top:8px'>"+estoreHtml+"</div></div>";
 }
 
+function renderDesfecho() {
+  var box = document.getElementById("custom-desfecho");
+  if (!box) return;
+  if (!ALL_DESFECHO.length) { box.innerHTML = ""; return; }
+
+  // indexa por produto -> grupo
+  var porProd = {};
+  var totalConversas = 0, totalEmprestimo = 0;
+  ALL_DESFECHO.forEach(function(r){
+    if (!porProd[r.produto]) porProd[r.produto] = {};
+    porProd[r.produto][r.grupo] = r;
+    totalConversas = +r.total_conversas || totalConversas;
+    if (r.produto === "emprestimo") totalEmprestimo = +r.total_ofertas_produto || totalEmprestimo;
+  });
+
+  function fmtDur(seg){ seg = +seg||0; return Math.floor(seg/60) + "m" + (seg%60) + "s"; }
+  function parseBreak(s){ // "decidido:10|indeciso:4" -> [[decidido,10],...]
+    if (!s) return [];
+    return s.split("|").map(function(p){ var kv = p.split(":"); return [kv[0], +kv[1]||0]; });
+  }
+  function cap(s){ return (s||"").charAt(0).toUpperCase()+(s||"").slice(1); }
+  function breakStr(s){
+    var arr = parseBreak(s); if (!arr.length) return "—";
+    var tot = arr.reduce(function(a,b){return a+b[1];},0);
+    return arr.map(function(e){ return cap(e[0])+" "+Math.round(e[1]/tot*100)+"%"; }).join(" · ");
+  }
+
+  // Card de comparação de um produto (recusou vs aceite_incerto)
+  function cardComparacao(prod, titulo) {
+    var g = porProd[prod] || {};
+    var rec = g["recusou"] || {}, inc = g["aceite_incerto"] || {};
+    var nRec = +rec.n||0, nInc = +inc.n||0;
+    function col(g, rotulo, cor){
+      var n = +g.n||0;
+      return "<div style='flex:1'>" +
+        "<div style='font-size:11px;font-weight:600;color:"+cor+";margin-bottom:6px'>"+rotulo+" <span style='color:var(--text-dim);font-weight:400'>(n="+n+")</span></div>" +
+        (n ?
+          "<div class='desf-metric'><span>Duração média</span><b>"+fmtDur(g.dur_media_seg)+"</b></div>" +
+          "<div class='desf-metric'><span>Itens comprados (média)</span><b>"+(g.itens_media||"0")+"</b></div>" +
+          "<div class='desf-metric'><span>Perfil</span><b style='font-size:10px'>"+breakStr(g.perfil)+"</b></div>" +
+          "<div class='desf-metric'><span>Sentimento</span><b style='font-size:10px'>"+breakStr(g.sentimento)+"</b></div>"
+          : "<div style='font-size:11px;color:var(--text-dim)'>sem casos</div>") +
+        "</div>";
+    }
+    return "<div class='card' style='margin-bottom:12px'>" +
+      "<div class='card-title'>"+titulo+" <span style='color:var(--warn);font-size:10px;font-weight:400'>(exploratório · amostra pequena)</span></div>" +
+      "<div class='card-sub'>Comparação entre desfecho de insucesso claro e possível avanço da oferta. n baixo — direcional, não conclusivo.</div>" +
+      "<div style='display:flex;gap:20px;margin-top:10px'>" +
+        col(rec, "Recusou (insucesso claro)", "#ef4444") +
+        "<div style='width:1px;background:var(--border)'></div>" +
+        col(inc, "Aceite incerto (talvez avançou)", "#06b6d4") +
+      "</div></div>";
+  }
+
+  var notaEmp = "<div class='card' style='margin-bottom:12px'>" +
+    "<div class='card-title'>Empréstimo — Captação vs. Atendimento <span style='color:var(--warn);font-size:10px;font-weight:400'>(exploratório)</span></div>" +
+    "<div style='font-size:12px;color:var(--text-muted);line-height:1.5;margin-top:6px'>" +
+    "Oferta de <b>captação</b> de empréstimo (venda nova) foi detectada em apenas <b>"+totalEmprestimo+" de "+totalConversas+"</b> conversas. " +
+    "A grande maioria das menções a empréstimo no caixa é <b>atendimento de contrato existente</b> (pagar/quitar/consultar parcela), não venda nova. " +
+    "Amostra insuficiente para cruzar desfecho — o insight aqui é a própria raridade da captação no PDV." +
+    "</div></div>";
+
+  box.innerHTML =
+    "<div class='card' style='margin-bottom:12px;background:transparent;border:none;padding:0'>" +
+      "<div class='card-title' style='font-size:15px'>Desfecho das Ofertas de Produtos Financeiros</div>" +
+      "<div class='card-sub'>Análise exploratória do que acontece após a oferta. O aceite efetivo raramente é verbalizado na conversa; por isso as categorias são \"recusou\" (recusa explícita, confiável) e \"aceite incerto\" (sinais de que o cadastro avançou, como pedir CPF). Não é taxa de aceitação.</div>" +
+    "</div>" +
+    cardComparacao("cartao", "Cartão Riachuelo — Desfecho da Oferta") +
+    cardComparacao("juros", "Venda com Juros — Desfecho da Conversa de Parcelamento") +
+    notaEmp;
+}
+
 async function loadData() {
   try {
     var res = await fetch(GSHEET_CSV);
@@ -1588,6 +1666,11 @@ async function loadData() {
       var convText = await convRes.text();
       ALL_CUSTOM_CONV = rowsToObjects(parseCSV(convText));
     } catch(e5) { ALL_CUSTOM_CONV = []; }
+    try {
+      var desfRes = await fetch(GSHEET_DESFECHO);
+      var desfText = await desfRes.text();
+      ALL_DESFECHO = rowsToObjects(parseCSV(desfText));
+    } catch(e6) { ALL_DESFECHO = []; }
     // Não pré-preenche o filtro de data — carrega sempre com "Todas as datas"
     document.getElementById("date-label").textContent = "Todas as datas";
     document.getElementById("last-update").textContent = "Atualizado: " + new Date().toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",hour:"2-digit",minute:"2-digit"});
