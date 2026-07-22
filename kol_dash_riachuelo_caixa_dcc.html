@@ -251,12 +251,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 </div></div>
 <div id="view-custom" style="display:none">
   <div class="card" style="margin-bottom:12px">
-    <div class="card-title">Análises Customizadas</div>
-    <div class="card-sub" id="custom-data-ref">Estudo pontual — não atualiza sozinho com o resto do dashboard</div>
+    <div class="card-title">Análises Customizadas a Pedido da Riachuelo</div>
     <div style="font-size:12px;color:var(--text-dim);line-height:1.5;margin-top:6px">
       Detecção por palavra-chave e contexto nas transcrições de áudio (Cartão Riachuelo, Empréstimo, Seguro, Venda com Juros, E-Store).
       <b>Conversão é da operação como um todo</b>, não atribuível à menção do tema — não interpretar como causalidade.
-      Caixa e DCC têm naturezas de atendimento diferentes; as taxas <b>não são comparáveis entre lojas</b>.
     </div>
   </div>
   <div id="custom-lojas-container"></div>
@@ -1231,7 +1229,7 @@ function renderClienteView(data) {
   renderHBars("hbar-motivo", motivoData, "var(--blue)");
 
   // O que o cliente procurou — coluna "Produto procurado" com DE-PARA produto (sem N/A)
-  var IGNORAR_PRODUTO = ["não aplicável","nao aplicavel","não se aplica","nao se aplica","desconsiderar",""];
+  var IGNORAR_PRODUTO = ["não aplicável","nao aplicavel","não se aplica","nao se aplica","desconsiderar","não identificado","nao identificado",""];
   var produtoData = (function(){
     var c = {};
     data.forEach(function(r){
@@ -1322,6 +1320,11 @@ function renderClienteView(data) {
       var v = (r["Qual foi o motivo da não conversão?"]||"").trim().toLowerCase();
       if (isNaoAplicavel(v)) return;
       var label = LABEL_PERDA[v] || (v.charAt(0).toUpperCase()+v.slice(1));
+      // Exclui rótulos genéricos de "não identificado/indefinido" do gráfico
+      var labelLower = label.toLowerCase();
+      if (labelLower.indexOf("não aplic") !== -1 || labelLower.indexOf("nao aplic") !== -1 ||
+          labelLower.indexOf("indefinido") !== -1 || labelLower.indexOf("não identific") !== -1 ||
+          labelLower.indexOf("nao identific") !== -1) return;
       perdaCount[label] = (perdaCount[label]||0)+1;
     });
     var perdaData = Object.entries(perdaCount).map(function(e){return {label:e[0],val:e[1]};}).sort(function(a,b){return b.val-a.val;});
@@ -1392,10 +1395,6 @@ function renderAnalisesCustom() {
     return;
   }
 
-  var dataRef = ALL_CUSTOM[0].data_referencia || "";
-  var refEl = document.getElementById("custom-data-ref");
-  if (refEl && dataRef) refEl.textContent = "Estudo pontual — transcrições processadas até " + dataRef + " (não atualiza sozinho; precisa ser rodado de novo manualmente)";
-
   // Agrupa: loja -> vendedor -> tema -> linha
   var porLoja = {};
   ALL_CUSTOM.forEach(function(r){
@@ -1424,13 +1423,24 @@ function renderAnalisesCustom() {
       return "<tr><td>" + v + "</td><td class='num'>" + dv.total + "</td><td class='num' style='color:var(--cyan);font-weight:600'>" + dv.conv + "%</td>" + celulas + "</tr>";
     }).join("");
 
-    var headerTemas = TEMAS_ORDEM.map(function(t){ return "<th style='text-align:right'>" + t + "</th>"; }).join("");
+    var tblId = "tbl-custom-" + loja.replace(/[^a-zA-Z0-9]/g, "");
+    var colsFixas = [
+      {rot:"Vendedor", align:"left"},
+      {rot:"Conversas", align:"right"},
+      {rot:"Conversão", align:"right"}
+    ];
+    var headerHtml = colsFixas.map(function(c,i){
+      return "<th onclick=\"sortTable('" + tblId + "'," + i + ")\" style='text-align:" + c.align + "'>" + c.rot + "<span class='sort-arrow' id='" + tblId + "-" + i + "'>↕</span></th>";
+    }).join("") + TEMAS_ORDEM.map(function(t,j){
+      var colIdx = colsFixas.length + j;
+      return "<th onclick=\"sortTable('" + tblId + "'," + colIdx + ")\" style='text-align:right'>" + t + "<span class='sort-arrow' id='" + tblId + "-" + colIdx + "'>↕</span></th>";
+    }).join("");
 
     return "<div class='card' style='margin-bottom:12px'>" +
       "<div class='card-title'>" + loja + "</div>" +
-      "<div class='card-sub'>% de menção ao tema por vendedor, entre as conversas dessa loja</div>" +
-      "<div class='tbl-wrap' style='max-height:none'><table class='stbl'><thead><tr>" +
-      "<th>Vendedor</th><th style='text-align:right'>Conversas</th><th style='text-align:right'>Conversão</th>" + headerTemas +
+      "<div class='card-sub'>% de menção ao tema por vendedor, entre as conversas dessa loja — clique no título para ordenar</div>" +
+      "<div class='tbl-wrap' style='max-height:none'><table class='stbl' id='" + tblId + "'><thead><tr>" +
+      headerHtml +
       "</tr></thead><tbody>" + linhasTabela + "</tbody></table></div>" +
       "</div>";
   }).join("");
