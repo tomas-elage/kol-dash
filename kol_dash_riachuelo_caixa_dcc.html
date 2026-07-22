@@ -1462,70 +1462,75 @@ function renderCruzamentos() {
     {key:"tem_seguro", label:"Seguro"},
     {key:"tem_juros", label:"Venda com Juros"}
   ];
-  var CORES_PERFIL = { "Decidido":"#22c55e", "Indeciso":"#f59e0b", "Pesquisador":"#8b5cf6", "(não identificado)":"#4a5568" };
-  var CORES_SENT = { "encantado":"#22c55e", "valorizado":"#06b6d4", "neutro":"#94a3b8", "frustrado":"#ef4444", "(não identificado)":"#4a5568" };
-  var AMOSTRA_MINIMA = 15; // abaixo disso, marca baixa confiança
+  // Perfil: ordem e cores fixas. "Não identificado" é EXCLUÍDO do gráfico.
+  var PERFIL_ORDEM = ["Decidido", "Indeciso", "Pesquisador"];
+  var CORES_PERFIL = { "Decidido":"#22c55e", "Indeciso":"#f59e0b", "Pesquisador":"#8b5cf6" };
+  // Sentimento: ordem fixa frustrado → neutro → valorizado → encantado.
+  var SENT_ORDEM = ["frustrado", "neutro", "valorizado", "encantado"];
+  var CORES_SENT = { "frustrado":"#ef4444", "neutro":"#94a3b8", "valorizado":"#06b6d4", "encantado":"#22c55e" };
+  var AMOSTRA_MINIMA = 15;
 
   function capitaliza(s){ return (s||"").charAt(0).toUpperCase() + (s||"").slice(1); }
+  function ehNaoIdent(s){ var l=(s||"").toLowerCase(); return l.indexOf("não identific")!==-1 || l.indexOf("nao identific")!==-1 || l==="" ; }
 
-  // Constrói barra empilhada 100% a partir de um mapa {categoria: contagem}
-  function barraEmpilhada(mapaCont, cores) {
-    var total = Object.values(mapaCont).reduce(function(a,b){return a+b;}, 0);
+  // Barra empilhada 100% seguindo uma ORDEM fixa de categorias, com rótulo de % dentro do segmento.
+  function barraEmpilhada(mapaCont, ordem, cores) {
+    var total = ordem.reduce(function(a,k){return a+(mapaCont[k]||0);}, 0);
     if (!total) return {html:"<div style='color:var(--text-dim);font-size:11px'>sem dados</div>", total:0};
-    var segs = Object.keys(mapaCont).filter(function(k){return mapaCont[k]>0;})
-      .sort(function(a,b){return mapaCont[b]-mapaCont[a];})
-      .map(function(k){
-        var pct = Math.round(mapaCont[k]/total*100);
-        var cor = cores[k] || "#4a5568";
-        return "<div title='"+k+": "+mapaCont[k]+" ("+pct+"%)' style='width:"+pct+"%;background:"+cor+";height:100%'></div>";
-      }).join("");
-    return {html:"<div style='display:flex;height:18px;border-radius:3px;overflow:hidden'>"+segs+"</div>", total:total};
+    var segs = ordem.filter(function(k){return (mapaCont[k]||0)>0;}).map(function(k){
+      var pct = Math.round(mapaCont[k]/total*100);
+      var mostraLabel = pct >= 8; // só escreve o % se o segmento for largo o suficiente
+      return "<div title='"+capitaliza(k)+": "+mapaCont[k]+" ("+pct+"%)' style='width:"+pct+"%;background:"+(cores[k]||"#4a5568")+";height:100%;display:flex;align-items:center;justify-content:center'>" +
+             (mostraLabel ? "<span style='font-size:10px;color:#fff;font-weight:600'>"+pct+"%</span>" : "") + "</div>";
+    }).join("");
+    return {html:"<div style='display:flex;height:20px;border-radius:3px;overflow:hidden'>"+segs+"</div>", total:total};
   }
 
-  function legenda(cores) {
+  function legenda(ordem, cores) {
     return "<div style='display:flex;flex-wrap:wrap;gap:10px;margin-top:8px'>" +
-      Object.keys(cores).map(function(k){
+      ordem.map(function(k){
         return "<span style='font-size:10px;color:var(--text-muted);display:flex;align-items:center;gap:4px'><span style='width:9px;height:9px;border-radius:2px;background:"+cores[k]+";display:inline-block'></span>"+capitaliza(k)+"</span>";
       }).join("") + "</div>";
   }
 
-  // ── Bloco 1: Perfil do cliente × produto ofertado ──────────────────
+  // ── Bloco 1: Perfil × produto (exclui não-identificado, normaliza caixa) ──
   var linhasPerfil = TEMAS.map(function(t){
     var mapa = {};
     ALL_CUSTOM_CONV.forEach(function(r){
       if (r[t.key] === "1") {
-        var p = r.perfil_cliente || "(não identificado)";
+        var p = (r.perfil_cliente||"").trim();
+        if (ehNaoIdent(p)) return;
+        p = capitaliza(p.toLowerCase()); // "decidido"/"Decidido" -> "Decidido"
         mapa[p] = (mapa[p]||0)+1;
       }
     });
-    var b = barraEmpilhada(mapa, CORES_PERFIL);
+    var b = barraEmpilhada(mapa, PERFIL_ORDEM, CORES_PERFIL);
     return "<div style='margin-bottom:10px'><div style='font-size:11px;color:var(--text-muted);margin-bottom:3px'>"+t.label+" <span style='color:var(--text-dim)'>(n="+b.total+")</span></div>"+b.html+"</div>";
   }).join("");
 
-  // ── Bloco 2: Sentimento de saída × produto ofertado ───────────────
+  // ── Bloco 2: Sentimento × produto (ordem fixa, com %) ─────────────
   var linhasSent = TEMAS.map(function(t){
     var mapa = {};
     ALL_CUSTOM_CONV.forEach(function(r){
       if (r[t.key] === "1") {
-        var s = (r.sentimento||"(não identificado)").toLowerCase();
+        var s = (r.sentimento||"").trim().toLowerCase();
+        if (ehNaoIdent(s)) return;
         mapa[s] = (mapa[s]||0)+1;
       }
     });
-    var b = barraEmpilhada(mapa, CORES_SENT);
+    var b = barraEmpilhada(mapa, SENT_ORDEM, CORES_SENT);
     var aviso = b.total < AMOSTRA_MINIMA ? " <span style='color:var(--warn)'>⚠ amostra baixa</span>" : "";
     return "<div style='margin-bottom:10px'><div style='font-size:11px;color:var(--text-muted);margin-bottom:3px'>"+t.label+" <span style='color:var(--text-dim)'>(n="+b.total+")</span>"+aviso+"</div>"+b.html+"</div>";
   }).join("");
 
-  // ── Bloco 3: E-Store × item procurado (exploratório) ──────────────
+  // ── Bloco 3: E-Store × item procurado (já tratado pelo DE-PARA na origem) ──
   var itemCount = {};
   var totalEstore = 0;
   ALL_CUSTOM_CONV.forEach(function(r){
     if (r.tem_estore === "1") {
       totalEstore++;
-      var it = r.produto_procurado || "(não identificado)";
-      if (it.toLowerCase().indexOf("não identific") === -1 && it.toLowerCase().indexOf("nao identific") === -1) {
-        itemCount[it] = (itemCount[it]||0)+1;
-      }
+      var it = (r.produto_procurado||"").trim();
+      if (!ehNaoIdent(it)) itemCount[it] = (itemCount[it]||0)+1;
     }
   });
   var itemData = Object.entries(itemCount).map(function(e){return {label:e[0],val:e[1]};}).sort(function(a,b){return b.val-a.val;}).slice(0,10);
@@ -1539,11 +1544,11 @@ function renderCruzamentos() {
   box.innerHTML =
     "<div class='row2' style='margin-bottom:12px'>" +
       "<div class='card'><div class='card-title'>Perfil do Cliente × Produto Ofertado</div>" +
-      "<div class='card-sub'>Distribuição do perfil de cliente em cada produto ofertado</div>" +
-      linhasPerfil + legenda(CORES_PERFIL) + "</div>" +
+      "<div class='card-sub'>Distribuição do perfil de cliente em cada produto ofertado (exclui não identificados)</div>" +
+      linhasPerfil + legenda(PERFIL_ORDEM, CORES_PERFIL) + "</div>" +
       "<div class='card'><div class='card-title'>Sentimento do Cliente × Produto Ofertado</div>" +
       "<div class='card-sub'>Como o cliente saiu da loja, por produto ofertado</div>" +
-      linhasSent + legenda(CORES_SENT) + "</div>" +
+      linhasSent + legenda(SENT_ORDEM, CORES_SENT) + "</div>" +
     "</div>" +
     "<div class='card' style='margin-bottom:12px'><div class='card-title'>E-Store × Item Procurado <span style='color:var(--warn);font-size:10px;font-weight:400'>(exploratório)</span></div>" +
     "<div class='card-sub'>Itens buscados nas "+totalEstore+" conversas com detecção de E-Store. Detecção ainda tem falso positivo — usar como direção, não número final.</div>" +
