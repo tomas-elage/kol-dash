@@ -865,7 +865,7 @@ function renderAll() {
     // Indicadores de Fechamento saem da análise de impacto: tendem a ser CONSEQUÊNCIA
     // da venda ter dado certo (encerramento mais caprichado quando já fechou), não causa —
     // incluir invertia a seta de causalidade.
-    var CAMPOS_EXCLUIDOS_IMPACTO = ["Como foi o encerramento do vendedor?", "Vendedor convidou o cliente a retornar?", "Vendedor falou do programa de fidelização?", "Demonstrou o produto?"];
+    var CAMPOS_EXCLUIDOS_IMPACTO = ["Como foi o encerramento do vendedor?", "Vendedor convidou o cliente a retornar?", "Vendedor falou do programa de fidelização?", "Demonstrou o produto?", "Tentou upsell?"];
     var ehExcluido = CAMPOS_EXCLUIDOS_IMPACTO.indexOf(x.f) !== -1;
     if (!ehExcluido && simConvPct !== null && naoConvPct !== null && simConvDen >= AMOSTRA_MINIMA && naoConvDen >= AMOSTRA_MINIMA) {
       impactoPorCampo.push({
