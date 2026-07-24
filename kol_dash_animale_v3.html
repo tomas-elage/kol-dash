@@ -146,6 +146,12 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .dest-convs.open{display:block}
 .dest-conv-row{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;margin-bottom:3px;background:rgba(255,255,255,.03);border-radius:5px;text-decoration:none;color:var(--text-muted);font-size:11px}
 .dest-conv-row:hover{background:rgba(255,255,255,.07);color:var(--text)}
+.view-btn-locked{font-size:13px;font-weight:500;padding:6px 16px;border:none;border-radius:20px;background:transparent;color:var(--text-dim);cursor:not-allowed;display:inline-flex;align-items:center;gap:6px;position:relative;border:1.5px dashed var(--border)}
+.view-btn-locked:hover{color:var(--accent, #7c5cff);border-color:var(--accent, #7c5cff)}
+.view-btn-locked:hover .lock-tt{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.lock-tt{position:absolute;top:calc(100% + 10px);left:50%;transform:translateX(-50%) translateY(-4px);background:#1a1917;color:#fff;font-size:11px;font-weight:400;line-height:1.4;white-space:nowrap;padding:8px 12px;border-radius:8px;pointer-events:none;opacity:0;transition:opacity .18s,transform .18s;z-index:200;box-shadow:0 4px 14px rgba(0,0,0,.25);text-align:center}
+.lock-tt strong{display:block;margin-bottom:2px}
+.lock-tt::before{content:'';position:absolute;top:-5px;left:50%;transform:translateX(-50%);border-width:0 5px 5px 5px;border-style:solid;border-color:transparent transparent #1a1917 transparent}
 </style>
 </head>
 <body>
@@ -157,6 +163,11 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   <div class="view-toggle">
     <button class="view-btn active" id="btn-at" onclick="setView('at')">Atendimento</button>
     <button class="view-btn" id="btn-cl" onclick="setView('cl')">Cliente</button>
+    <button class="view-btn-locked" tabindex="-1" onclick="return false;" aria-disabled="true">
+      <svg class="lock-icon" width="11" height="12" viewBox="0 0 11 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="1" y="5" width="9" height="6.5" rx="1.5" fill="currentColor" opacity="0.35"/><path d="M3.5 5V3.5a2 2 0 0 1 4 0V5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" fill="none"/><circle cx="5.5" cy="8.25" r="1" fill="currentColor" opacity="0.6"/></svg>
+      Benchmark
+      <div class="lock-tt"><strong>Disponível no plano Premium</strong><span>Compare sua performance com outros varejistas KOL — fale com seu CS</span></div>
+    </button>
   </div>
   <div class="filter-chip" id="chip-lojas" onclick="toggleDD('dd-lojas',event)">LOJAS <span id="lojas-badge" class="badge" style="display:none">0</span> ▾<div class="dropdown" id="dd-lojas"></div></div>
   <div class="filter-chip" id="chip-vend" onclick="toggleDD('dd-vend',event)">VENDEDORES <span id="vend-badge" class="badge" style="display:none">0</span> ▾<div class="dropdown" id="dd-vend"></div></div>
